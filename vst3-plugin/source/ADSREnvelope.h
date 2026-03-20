@@ -10,11 +10,11 @@ public:
     ADSREnvelope();
     ~ADSREnvelope() = default;
 
-    void setSampleRate(double sr) { sampleRate = sr; }
-    void setAttack(float ms)   { attack = ms; }
-    void setDecay(float ms)    { decay = ms; }
+    void setSampleRate(double sr) { sampleRate = juce::jmax(1000.0, sr); } // Minimum 1kHz
+    void setAttack(float ms)   { attack = juce::jmax(0.001f, ms); }  // Minimum 1ms
+    void setDecay(float ms)    { decay = juce::jmax(0.001f, ms); }   // Minimum 1ms
     void setSustain(float val) { sustain = juce::jlimit(0.0f, 1.0f, val); }
-    void setRelease(float ms)  { release = ms; }
+    void setRelease(float ms)  { release = juce::jmax(0.001f, ms); } // Minimum 1ms
 
     void noteOn(int voiceId);
     void noteOff(int voiceId);
