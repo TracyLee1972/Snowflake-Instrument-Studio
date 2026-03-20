@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' blob:; worker-src blob:; form-action 'self';" />
+  <title>Snowflake Instrument Studio</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- ===== HEADER ===== -->
+  <header id="app-header">
+    <div class="header-logo">
+      <svg class="logo-icon" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+        <polygon points="20,2 24,14 37,14 27,22 31,35 20,27 9,35 13,22 3,14 16,14" fill="#5cf0e0" />
+      </svg>
+      <span class="logo-text">Snowflake Instrument Studio</span>
+    </div>
+    <nav class="header-nav" aria-label="Main navigation">
+      <button id="btn-new"     class="nav-btn" aria-label="New instrument">New</button>
+      <button id="btn-open"    class="nav-btn" aria-label="Open preset file">Open</button>
+      <button id="btn-save"    class="nav-btn" aria-label="Save preset">Save</button>
+      <button id="btn-export"  class="nav-btn" aria-label="Export a ZIP file with WAV samples">Export ZIP</button>
+      <button id="btn-share"   class="nav-btn" aria-label="Share instrument">Share</button>
+    </nav>
+    <div class="header-meta">
+      <span id="preset-name-display" class="preset-name" aria-live="polite">Untitled Instrument</span>
+      <button id="btn-rename" class="icon-btn" aria-label="Rename instrument" title="Rename">✏️</button>
+    </div>
+    <!-- Hidden file inputs -->
+    <input type="file" id="file-open-preset" accept=".sis" aria-hidden="true" tabindex="-1" />
+    <input type="file" id="file-import-wav"  accept=".wav"  aria-hidden="true" tabindex="-1" multiple />
+  </header>
+
+  <!-- ===== MAIN LAYOUT ===== -->
+  <main id="app-main">
+
+    <!-- LEFT: Sample Manager Panel -->
+    <section id="sample-panel" aria-label="Sample manager">
+      <h2 class="panel-title">Samples</h2>
+
+      <div id="drop-zone" role="button" tabindex="0"
+           aria-label="Drop WAV files here or click to import"
+           aria-describedby="drop-hint">
+        <span id="drop-hint">Drop WAV files here<br/>or click to import</span>
+      </div>
+
+      <button id="btn-batch-import" class="panel-btn" aria-label="Batch import WAV files">
+        Batch Import
+      </button>
+
+      <ul id="sample-list" role="list" aria-label="Imported samples">
+        <!-- Populated dynamically -->
+      </ul>
+
+      <!-- Instrument image designer -->
+      <div id="instrument-image-section">
+        <h3 class="panel-subtitle">Instrument Image</h3>
+        <div id="instrument-image-container" aria-label="Instrument artwork">
+          <img id="instrument-image" src="" alt="Instrument artwork" aria-hidden="true" />
+          <button id="btn-set-image" class="panel-btn" aria-label="Set instrument image">Set Image</button>
+          <input type="file" id="file-set-image" accept="image/*" aria-hidden="true" tabindex="-1" />
+        </div>
+      </div>
+    </section>
+
+    <!-- CENTER: Instrument View -->
+    <section id="instrument-view" aria-label="Instrument view">
+
+      <!-- Key mapping visualiser -->
+      <div id="mapping-view" aria-label="Key-to-sample mapping">
+        <h2 class="panel-title">Key Mapping</h2>
+        <div id="mapping-grid" role="grid" aria-label="Mapping grid">
+          <!-- Rows filled by JS -->
+        </div>
+      </div>
+
+      <!-- Piano keyboard -->
+      <div id="keyboard-wrap" aria-label="Piano keyboard">
+        <div id="keyboard" role="group" aria-label="88-key piano keyboard">
+          <!-- Keys injected by JS -->
+        </div>
+        <div id="keyboard-scroll-hint" aria-hidden="true">← scroll →</div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT: Controls Panel -->
+    <section id="controls-panel" aria-label="Sound controls">
+      <h2 class="panel-title">Controls</h2>
+
+      <!-- ADSR -->
+      <fieldset class="control-group" id="adsr-group">
+        <legend>ADSR Envelope</legend>
+        <div class="knob-row">
+          <div class="knob-wrap">
+            <canvas class="knob-canvas" data-param="attack"  data-min="0.001" data-max="4"    data-default="0.01"  aria-label="Attack"  role="slider" aria-valuemin="0.001" aria-valuemax="4"    aria-valuenow="0.01"  tabindex="0"></canvas>
+            <label class="knob-label">Attack</label>
+          </div>
+          <div class="knob-wrap">
+            <canvas class="knob-canvas" data-param="decay"   data-min="0.001" data-max="4"    data-default="0.1"   aria-label="Decay"   role="slider" aria-valuemin="0.001" aria-valuemax="4"    aria-valuenow="0.1"   tabindex="0"></canvas>
+            <label class="knob-label">Decay</label>
+          </div>
+          <div class="knob-wrap">
+            <canvas class="knob-canvas" data-param="sustain" data-min="0"     data-max="1"    data-default="0.8"   aria-label="Sustain" role="slider" aria-valuemin="0"     aria-valuemax="1"    aria-valuenow="0.8"   tabindex="0"></canvas>
+            <label class="knob-label">Sustain</label>
+          </div>
+          <div class="knob-wrap">
+            <canvas class="knob-canvas" data-param="release" data-min="0.001" data-max="10"   data-default="0.3"   aria-label="Release" role="slider" aria-valuemin="0.001" aria-valuemax="10"   aria-valuenow="0.3"   tabindex="0"></canvas>
+            <label class="knob-label">Release</label>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- Filter -->
+      <fieldset class="control-group" id="filter-group">
+        <legend>Filter</legend>
+        <div class="knob-row">
+          <div class="knob-wrap">
+            <canvas class="knob-canvas" data-param="filterFreq" data-min="20" data-max="20000" data-default="20000" aria-label="Filter cutoff" role="slider" aria-valuemin="20" aria-valuemax="20000" aria-valuenow="20000" tabindex="0"></canvas>
+            <label class="knob-label">Cutoff</label>
+          </div>
+          <div class="knob-wrap">
+            <canvas class="knob-canvas" data-param="filterRes" data-min="0.01" data-max="30" data-default="1" aria-label="Filter resonance" role="slider" aria-valuemin="0.01" aria-valuemax="30" aria-valuenow="1" tabindex="0"></canvas>
+            <label class="knob-label">Resonance</label>
+          </div>
+        </div>
+        <div class="select-row">
+          <label for="filter-type">Filter type</label>
+          <select id="filter-type" aria-label="Filter type">
+            <option value="lowpass">Low Pass</option>
+            <option value="highpass">High Pass</option>
+            <option value="bandpass">Band Pass</option>
+            <option value="notch">Notch</option>
+          </select>
+        </div>
+      </fieldset>
+
+      <!-- 3-band EQ -->
+      <fieldset class="control-group" id="eq-group">
+        <legend>3-Band EQ</legend>
+        <div class="slider-col">
+          <div class="slider-wrap">
+            <label for="eq-low">Low</label>
+            <input type="range" id="eq-low"  class="eq-slider" min="-12" max="12" step="0.1" value="0"
+                   aria-label="EQ Low"  aria-valuemin="-12" aria-valuemax="12" aria-valuenow="0" />
+            <span class="slider-val" id="eq-low-val">0 dB</span>
+          </div>
+          <div class="slider-wrap">
+            <label for="eq-mid">Mid</label>
+            <input type="range" id="eq-mid"  class="eq-slider" min="-12" max="12" step="0.1" value="0"
+                   aria-label="EQ Mid"  aria-valuemin="-12" aria-valuemax="12" aria-valuenow="0" />
+            <span class="slider-val" id="eq-mid-val">0 dB</span>
+          </div>
+          <div class="slider-wrap">
+            <label for="eq-high">High</label>
+            <input type="range" id="eq-high" class="eq-slider" min="-12" max="12" step="0.1" value="0"
+                   aria-label="EQ High" aria-valuemin="-12" aria-valuemax="12" aria-valuenow="0" />
+            <span class="slider-val" id="eq-high-val">0 dB</span>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- Pitch & Velocity -->
+      <fieldset class="control-group" id="pitch-vel-group">
+        <legend>Pitch & Velocity</legend>
+        <div class="knob-row">
+          <div class="knob-wrap">
+            <canvas class="knob-canvas" data-param="pitch" data-min="-24" data-max="24" data-default="0" aria-label="Pitch shift" role="slider" aria-valuemin="-24" aria-valuemax="24" aria-valuenow="0" tabindex="0"></canvas>
+            <label class="knob-label">Pitch</label>
+          </div>
+          <div class="knob-wrap">
+            <canvas class="knob-canvas" data-param="velocity" data-min="0" data-max="1" data-default="0.8" aria-label="Velocity sensitivity" role="slider" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0.8" tabindex="0"></canvas>
+            <label class="knob-label">Velocity</label>
+          </div>
+          <div class="knob-wrap">
+            <canvas class="knob-canvas" data-param="volume" data-min="0" data-max="1" data-default="0.8" aria-label="Master volume" role="slider" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0.8" tabindex="0"></canvas>
+            <label class="knob-label">Volume</label>
+          </div>
+        </div>
+        <div class="check-row">
+          <label>
+            <input type="checkbox" id="chk-round-robin" aria-label="Enable round-robin sample cycling" />
+            Round Robin
+          </label>
+        </div>
+      </fieldset>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER: RECORDER ===== -->
+  <footer id="footer-recorder" aria-label="Recorder">
+    <div class="recorder-controls">
+      <button id="btn-record" class="rec-btn" aria-label="Start recording" aria-pressed="false">⏺ Record</button>
+      <button id="btn-stop"   class="rec-btn" aria-label="Stop recording"  disabled>⏹ Stop</button>
+      <button id="btn-play"   class="rec-btn" aria-label="Play back recording" disabled>▶ Play</button>
+      <button id="btn-export-wav" class="rec-btn" aria-label="Export recording as WAV" disabled>💾 Export WAV</button>
+    </div>
+    <div id="recorder-status" aria-live="polite" class="recorder-status">Not recording</div>
+    <div id="vu-meter" aria-hidden="true">
+      <canvas id="vu-canvas" width="300" height="30" aria-hidden="true"></canvas>
+    </div>
+  </footer>
+
+  <!-- SCRIPTS (ES modules, no eval, no inline) -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

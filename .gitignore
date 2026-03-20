@@ -1,0 +1,10 @@
+# Native JUCE build outputs
+native-vst3/build/
+native-vst3/**/CMakeFiles/
+native-vst3/**/CMakeCache.txt
+native-vst3/**/cmake_install.cmake
+native-vst3/**/Makefile
+native-vst3/**/_deps/
+
+# Packaged exports
+*.zip
