@@ -29,35 +29,39 @@ class SampleManager {
     const id = this._nextId++;
     // Guess a MIDI root note from the filename
     const rootNote = SampleManager.guessRootNote(file.name);
-    await this._engine.loadBuffer(ab.slice(0), rootNote);
+    const audioBuffer = await this._engine.loadBuffer(ab.slice(0), rootNote);
     this._engine.setMapping(rootNote, rootNote, rootNote); // default: exact key
 
-    const sample = { id, name: file.name.replace(/\.wav$/i, ''), file, arrayBuffer: ab, rootNote, loNote: rootNote, hiNote: rootNote };
+    const sample = { id, name: file.name.replace(/\.wav$/i, ''), file, arrayBuffer: ab, audioBuffer, rootNote, loNote: rootNote, hiNote: rootNote };
     this._samples.push(sample);
     return sample;
   }
 
-  /* ── Auto-map: distribute samples chromatically starting from C1 ── */
+  /* ── Auto-map: distribute samples based on their root notes, filling key ranges at midpoints ── */
   autoMap(startNote = 36) {
-    // Sort samples by guessed root note (or load order)
+    if (!this._samples.length) return;
     const sorted = [...this._samples].sort((a, b) => a.rootNote - b.rootNote);
 
-    // Clear existing mappings
-    this._engine.clearAll();
-
-    let note = startNote;
-    for (let i = 0; i < sorted.length; i++) {
-      const s = sorted[i];
-      const nextNote = i < sorted.length - 1 ? Math.round((s.rootNote + sorted[i + 1].rootNote) / 2) : 127;
-      s.rootNote = note;
-      s.loNote   = (i === 0) ? 0 : note;
-      s.hiNote   = (i === sorted.length - 1) ? 127 : nextNote - 1;
-      note++;
+    // If any samples share the same root note (e.g. no filename hints), spread them evenly
+    const hasDuplicates = sorted.some((s, i) => i > 0 && s.rootNote === sorted[i - 1].rootNote);
+    if (hasDuplicates) {
+      this._engine.clearAll();
+      const step = sorted.length > 1
+        ? Math.floor((127 - startNote) / (sorted.length - 1))
+        : 0;
+      sorted.forEach((s, i) => {
+        s.rootNote = startNote + i * step;
+        this._engine.storeBuffer(s.audioBuffer, s.rootNote);
+      });
     }
 
-    // Re-register all buffers
-    for (const s of this._samples) {
-      this._engine.loadBuffer(s.arrayBuffer.slice(0), s.rootNote);
+    // Set key ranges to fill the gaps between adjacent root notes
+    for (let i = 0; i < sorted.length; i++) {
+      const s = sorted[i];
+      const prevRoot = i > 0 ? sorted[i - 1].rootNote : -1;
+      const nextRoot = i < sorted.length - 1 ? sorted[i + 1].rootNote : 128;
+      s.loNote = (i === 0) ? 0 : Math.floor((prevRoot + s.rootNote) / 2) + 1;
+      s.hiNote = (i === sorted.length - 1) ? 127 : Math.floor((s.rootNote + nextRoot) / 2);
       this._engine.setMapping(s.rootNote, s.loNote, s.hiNote);
     }
 
@@ -69,14 +73,14 @@ class SampleManager {
     const s = this._samples.find(x => x.id === sampleId);
     if (!s) return;
 
-    // Remove old buffer registration
+    // Remove old buffer registration and register at new root note
     this._engine.clearNote(s.rootNote);
 
     s.rootNote = rootNote;
     s.loNote   = loNote;
     s.hiNote   = hiNote;
 
-    this._engine.loadBuffer(s.arrayBuffer.slice(0), rootNote);
+    this._engine.storeBuffer(s.audioBuffer, rootNote);
     this._engine.setMapping(rootNote, loNote, hiNote);
 
     this._onChange(this._samples);
@@ -118,9 +122,9 @@ class SampleManager {
     this.clear();
     for (const item of items) {
       const id = this._nextId++;
-      await this._engine.loadBuffer(item.arrayBuffer.slice(0), item.rootNote);
+      const audioBuffer = await this._engine.loadBuffer(item.arrayBuffer.slice(0), item.rootNote);
       this._engine.setMapping(item.rootNote, item.loNote, item.hiNote);
-      this._samples.push({ id, name: item.name, arrayBuffer: item.arrayBuffer, rootNote: item.rootNote, loNote: item.loNote, hiNote: item.hiNote });
+      this._samples.push({ id, name: item.name, arrayBuffer: item.arrayBuffer, audioBuffer, rootNote: item.rootNote, loNote: item.loNote, hiNote: item.hiNote });
     }
     this._onChange(this._samples);
   }

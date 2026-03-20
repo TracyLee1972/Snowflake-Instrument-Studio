@@ -163,10 +163,8 @@ class AudioEngine {
     const semitones = (noteNumber - rootNote) + this.pitchCoarse + (this.pitchFine / 100);
     source.playbackRate.value = Math.pow(2, semitones / 12);
 
-    // Velocity → gain (linear blend with flat curve)
-    const velGain = this.velocitySens > 0
-      ? Math.pow(velocity, 1 / Math.max(0.1, this.velocitySens)) * velocity
-      : velocity;
+    // Velocity → gain: blend between flat (sens=0 → always 1.0) and linear (sens=1 → velGain=velocity)
+    const velGain = 1.0 - this.velocitySens + this.velocitySens * velocity;
 
     const env = this._ctx.createGain();
     env.gain.setValueAtTime(0, now);
@@ -295,7 +293,7 @@ class AudioEngine {
       const semitones = (noteNumber - rootNote) + this.pitchCoarse + (this.pitchFine / 100);
       src.playbackRate.value = Math.pow(2, semitones / 12);
 
-      const velGain = Math.pow(velocity, 1 / Math.max(0.1, this.velocitySens)) * velocity;
+      const velGain = 1.0 - this.velocitySens + this.velocitySens * velocity;
       const env = offline.createGain();
       env.gain.setValueAtTime(0, time);
       env.gain.linearRampToValueAtTime(velGain, time + this.attack);

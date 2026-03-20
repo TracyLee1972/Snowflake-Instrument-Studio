@@ -33,8 +33,8 @@ class PianoKeyboard {
     this._KB_BLACK = ['w','e','t','y','u','o','p'];
     // White-key offsets: C D E F G A B C D E F (relative semitones)
     this._WHITE_SEMI = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17];
-    // Black-key offsets: C# D# F# G# A#
-    this._BLACK_SEMI = [1, 3, 6, 8, 10];
+    // Black-key offsets for all 7 keys: C# D# F# G# A# C# D# (spans into next octave)
+    this._BLACK_SEMI = [1, 3, 6, 8, 10, 13, 15];
 
     this._kbBaseNote = 48; // C3 — shifts with octave controls
 
@@ -53,9 +53,6 @@ class PianoKeyboard {
     // Black key offsets within a single octave (30px white-key width = 210px per octave)
     // C#:21, D#:51, F#:111, G#:141, A#:171
     const BLACK_OFFSETS = [21, 51, 111, 141, 171];
-    const HAS_BLACK = [true, false, true, false, false, true, false, true, false, true, false, false]; // after C D _ F G A _
-
-    let whiteX = 0;
 
     for (let oct = this.startOctave; oct <= this.endOctave; oct++) {
       const octaveDiv = document.createElement('div');
@@ -223,12 +220,19 @@ class PianoKeyboard {
       }
     }, { passive: false });
 
-    this.container.addEventListener('touchend', (e) => {
+    const handleTouchRelease = (e) => {
       e.preventDefault();
       for (const t of e.changedTouches) {
         const el = document.elementFromPoint(t.clientX, t.clientY);
         if (el && el.dataset.midi) this._triggerOff(+el.dataset.midi);
       }
+    };
+
+    this.container.addEventListener('touchend',    handleTouchRelease, { passive: false });
+
+    // touchcancel fires when e.g. a phone call interrupts; release all pressed keys
+    this.container.addEventListener('touchcancel', () => {
+      for (const m of [...this._pressedKeys]) this._triggerOff(m);
     }, { passive: false });
   }
 

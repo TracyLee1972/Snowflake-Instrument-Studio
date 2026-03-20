@@ -68,11 +68,29 @@
     for (const s of samples) {
       const div = document.createElement('div');
       div.className = 'sample-item' + (sampleManager.getSelected()?.id === s.id ? ' selected' : '');
-      div.innerHTML = `
-        <span class="sample-dot${s.rootNote !== undefined ? ' mapped' : ''}"></span>
-        <span class="sample-name" title="${s.name}">${s.name}</span>
-        <span class="sample-root">${midiToName(s.rootNote)}</span>
-        <button class="sample-del" data-id="${s.id}" title="Remove">✕</button>`;
+
+      const dot = document.createElement('span');
+      dot.className = 'sample-dot' + (s.rootNote !== undefined ? ' mapped' : '');
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'sample-name';
+      nameSpan.title = s.name;
+      nameSpan.textContent = s.name;
+
+      const rootSpan = document.createElement('span');
+      rootSpan.className = 'sample-root';
+      rootSpan.textContent = midiToName(s.rootNote);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'sample-del';
+      delBtn.dataset.id = s.id;
+      delBtn.title = 'Remove';
+      delBtn.textContent = '✕';
+
+      div.appendChild(dot);
+      div.appendChild(nameSpan);
+      div.appendChild(rootSpan);
+      div.appendChild(delBtn);
 
       div.addEventListener('click', (e) => {
         if (e.target.classList.contains('sample-del')) return;
@@ -81,7 +99,7 @@
         updateMappingSelects();
       });
 
-      div.querySelector('.sample-del').addEventListener('click', (e) => {
+      delBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         sampleManager.removeSample(s.id);
       });

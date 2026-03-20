@@ -119,7 +119,6 @@ class Knob {
 
     const onMove = (e) => {
       const dy = this._startY - (e.clientY ?? e.touches?.[0]?.clientY);
-      const range = this.max - this.min;
       const sensitivity = 0.004;
       const normDelta = dy * sensitivity;
       const newNorm = Math.max(0, Math.min(1, this._norm(this._startVal) + normDelta));
@@ -224,11 +223,6 @@ function initControls(audioEngine) {
     ctx.fillStyle = 'rgba(74,158,255,0.12)';
     ctx.fill();
   }
-
-  const atkSlider = document.getElementById('adsr-attack');
-  const decSlider = document.getElementById('adsr-decay');
-  const susSlider = document.getElementById('adsr-sustain');
-  const relSlider = document.getElementById('adsr-release');
 
   function sToTime(v) { return (v / 100) * (v / 100) * 5; } // exponential 0–5 s
 
