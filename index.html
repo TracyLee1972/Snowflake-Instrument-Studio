@@ -3,250 +3,302 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' blob:; worker-src blob:; form-action 'self';" />
   <title>Snowflake Instrument Studio</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-  <!-- ===== HEADER ===== -->
-  <header id="app-header">
-    <div class="header-logo">
-      <svg class="logo-icon" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
-        <polygon points="20,2 24,14 37,14 27,22 31,35 20,27 9,35 13,22 3,14 16,14" fill="#5cf0e0" />
-      </svg>
-      <span class="logo-text">Snowflake Instrument Studio</span>
-    </div>
-    <nav class="header-nav" aria-label="Main navigation">
-      <button id="btn-new"     class="nav-btn" aria-label="New instrument">New</button>
-      <button id="btn-open"    class="nav-btn" aria-label="Open preset file">Open</button>
-      <button id="btn-save"    class="nav-btn" aria-label="Save preset">Save</button>
-      <button id="btn-export"  class="nav-btn" aria-label="Export a ZIP file with WAV samples">Export ZIP</button>
-      <button id="btn-share"   class="nav-btn" aria-label="Share instrument">Share</button>
-    </nav>
-    <div class="header-meta">
-      <span id="preset-name-display" class="preset-name" aria-live="polite">Untitled Instrument</span>
-      <button id="btn-rename" class="icon-btn" aria-label="Rename instrument" title="Rename">✏️</button>
-    </div>
-    <!-- Hidden file inputs -->
-    <input type="file" id="file-open-preset" accept=".sis" aria-hidden="true" tabindex="-1" />
-    <input type="file" id="file-import-wav"  accept=".wav"  aria-hidden="true" tabindex="-1" multiple />
-  </header>
+  <div id="app">
 
-  <!-- ===== MAIN LAYOUT ===== -->
-  <main id="app-main">
+    <!-- ── HEADER ── -->
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-icon">❄️</span>
+        <span class="logo-text">Snowflake Instrument Studio</span>
+      </div>
+      <div class="header-center">
+        <input type="text" id="instrument-name" class="instrument-name-input"
+               value="My Instrument" placeholder="Instrument Name" />
+      </div>
+      <div class="header-controls">
+        <button class="btn btn-ghost" id="btn-new"  title="New Instrument">New</button>
+        <button class="btn btn-ghost" id="btn-load" title="Load Instrument">Load</button>
+        <button class="btn btn-primary" id="btn-save" title="Save Instrument">Save</button>
+        <button class="btn btn-accent"  id="btn-share" title="Share Instrument">Share ↗</button>
+      </div>
+    </header>
 
-    <!-- LEFT: Sample Manager Panel -->
-    <section id="sample-panel" aria-label="Sample manager">
-      <h2 class="panel-title">Samples</h2>
+    <!-- ── MAIN ── -->
+    <main class="app-main">
 
-      <div id="drop-zone" role="button" tabindex="0"
-           aria-label="Drop WAV files here or click to import"
-           aria-describedby="drop-hint">
-        <span id="drop-hint">Drop WAV files here<br/>or click to import</span>
+      <!-- LEFT: Sample Manager -->
+      <aside class="panel sample-panel" id="sample-panel">
+        <div class="panel-header"><h3>📂 Samples</h3></div>
+
+        <div class="drop-zone" id="drop-zone">
+          <span class="drop-icon">🎵</span>
+          <p>Drop WAV files here</p>
+          <button class="btn btn-sm btn-ghost" id="btn-browse">Browse…</button>
+          <input type="file" id="file-input" accept=".wav,audio/wav" multiple style="display:none" />
+        </div>
+
+        <div class="sample-actions">
+          <button class="btn btn-sm btn-ghost" id="btn-batch-import">Batch Import</button>
+          <button class="btn btn-sm btn-accent"  id="btn-auto-map">Auto Map</button>
+          <input type="file" id="batch-import-input" accept=".wav,audio/wav" multiple style="display:none" />
+        </div>
+
+        <div class="sample-list" id="sample-list">
+          <div class="empty-list-hint">No samples loaded</div>
+        </div>
+
+        <div class="mapping-section" id="mapping-section">
+          <div class="panel-header"><h4>Mapping</h4></div>
+          <div class="mapping-row">
+            <label>Root Note</label>
+            <select id="root-note-select" class="select-sm"></select>
+          </div>
+          <div class="mapping-row">
+            <label>Lo Note</label>
+            <select id="lo-note-select" class="select-sm"></select>
+          </div>
+          <div class="mapping-row">
+            <label>Hi Note</label>
+            <select id="hi-note-select" class="select-sm"></select>
+          </div>
+          <button class="btn btn-sm btn-primary" id="btn-apply-mapping">Apply Mapping</button>
+          <button class="btn btn-sm btn-ghost"   id="btn-clear-mapping">Clear</button>
+        </div>
+      </aside>
+
+      <!-- CENTER: Instrument View + Keyboard -->
+      <div class="instrument-area">
+
+        <!-- Visual designer area -->
+        <div class="instrument-view" id="instrument-view">
+          <div class="instrument-bg" id="instrument-bg">
+            <div class="instrument-overlay">
+              <span class="upload-hint">
+                <button class="btn btn-ghost btn-sm" id="btn-upload-bg">🖼️ Set Background Image</button>
+              </span>
+            </div>
+          </div>
+          <input type="file" id="bg-image-input" accept="image/*" style="display:none" />
+        </div>
+
+        <!-- Mapping display bar -->
+        <div class="mapping-bar" id="mapping-bar">
+          <canvas id="mapping-canvas" height="24"></canvas>
+        </div>
+
+        <!-- Keyboard toolbar -->
+        <div class="keyboard-toolbar">
+          <div class="octave-nav">
+            <button class="btn btn-sm btn-ghost" id="btn-oct-down">◀</button>
+            <span id="octave-display">C3–B6</span>
+            <button class="btn btn-sm btn-ghost" id="btn-oct-up">▶</button>
+          </div>
+          <span id="key-info" class="key-info">— ready —</span>
+          <label class="toggle-label">
+            <input type="checkbox" id="toggle-sustain" /> Sustain
+          </label>
+        </div>
+
+        <!-- Piano keyboard -->
+        <div class="piano-wrapper">
+          <div class="piano-container" id="piano-container"></div>
+        </div>
+
+        <div class="kb-shortcuts">
+          Computer keys: <strong>A S D F G H J K L ; '</strong> = white keys &nbsp;|&nbsp;
+          <strong>W E T Y U O P</strong> = black keys &nbsp;|&nbsp; <strong>Z / X</strong> = octave ↓/↑
+        </div>
       </div>
 
-      <button id="btn-batch-import" class="panel-btn" aria-label="Batch import WAV files">
-        Batch Import
-      </button>
+      <!-- RIGHT: Controls -->
+      <aside class="panel controls-panel">
 
-      <ul id="sample-list" role="list" aria-label="Imported samples">
-        <!-- Populated dynamically -->
-      </ul>
-
-      <!-- Instrument image designer -->
-      <div id="instrument-image-section">
-        <h3 class="panel-subtitle">Instrument Image</h3>
-        <div id="instrument-image-container" aria-label="Instrument artwork">
-          <img id="instrument-image" src="" alt="Instrument artwork" aria-hidden="true" />
-          <button id="btn-set-image" class="panel-btn" aria-label="Set instrument image">Set Image</button>
-          <input type="file" id="file-set-image" accept="image/*" aria-hidden="true" tabindex="-1" />
+        <!-- ADSR -->
+        <div class="ctrl-section">
+          <div class="ctrl-section-title">Envelope · ADSR</div>
+          <div class="slider-row">
+            <label>Atk</label>
+            <input type="range" class="hslider" id="adsr-attack"  min="0" max="100" value="1" />
+            <span class="val-lbl" id="adsr-attack-lbl">0.01s</span>
+          </div>
+          <div class="slider-row">
+            <label>Dec</label>
+            <input type="range" class="hslider" id="adsr-decay"   min="0" max="100" value="10" />
+            <span class="val-lbl" id="adsr-decay-lbl">0.1s</span>
+          </div>
+          <div class="slider-row">
+            <label>Sus</label>
+            <input type="range" class="hslider" id="adsr-sustain" min="0" max="100" value="80" />
+            <span class="val-lbl" id="adsr-sustain-lbl">80%</span>
+          </div>
+          <div class="slider-row">
+            <label>Rel</label>
+            <input type="range" class="hslider" id="adsr-release" min="0" max="100" value="30" />
+            <span class="val-lbl" id="adsr-release-lbl">0.3s</span>
+          </div>
+          <canvas id="adsr-canvas" width="190" height="54" class="adsr-canvas"></canvas>
         </div>
-      </div>
-    </section>
 
-    <!-- CENTER: Instrument View -->
-    <section id="instrument-view" aria-label="Instrument view">
-
-      <!-- Decorative 3D snowflake background -->
-      <svg id="snowflake-bg" viewBox="-105 -105 210 210" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id="sf-glow" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-          <linearGradient id="sf-grad" x1="0" y1="-80" x2="0" y2="80" gradientUnits="userSpaceOnUse">
-            <stop offset="0%"   stop-color="#f0f8ff"/>
-            <stop offset="35%"  stop-color="#c9ebff"/>
-            <stop offset="65%"  stop-color="#82cbff"/>
-            <stop offset="100%" stop-color="#389aff"/>
-          </linearGradient>
-        </defs>
-        <!-- Shadow -->
-        <path transform="translate(3.5,3.5)"
-              d="M0 0 L80 0 M54.4 0 L41.43-6.25 M54.4 0 L41.43 6.25 M36 0 L27.35-4.17 M36 0 L27.35 4.17 M0 0 L40 69.28 M27.2 47.12 L26.12 32.76 M27.2 47.12 L15.3 39.01 M18 31.18 L17.28 21.61 M18 31.18 L10.07 25.77 M0 0 L-40 69.28 M-27.2 47.12 L-15.3 39.01 M-27.2 47.12 L-26.12 32.76 M-18 31.18 L-10.07 25.77 M-18 31.18 L-17.28 21.61 M0 0 L-80 0 M-54.4 0 L-41.43 6.25 M-54.4 0 L-41.43-6.25 M-36 0 L-27.35 4.17 M-36 0 L-27.35-4.17 M0 0 L-40-69.28 M-27.2-47.12 L-26.12-32.76 M-27.2-47.12 L-15.3-39.01 M-18-31.18 L-17.28-21.61 M-18-31.18 L-10.07-25.77 M0 0 L40-69.28 M27.2-47.12 L15.3-39.01 M27.2-47.12 L26.12-32.76 M18-31.18 L10.07-25.77 M18-31.18 L17.28-21.61"
-              stroke="rgba(12,32,60,0.59)" stroke-width="8.2" fill="none" stroke-linecap="round"/>
-        <!-- Outer glow A -->
-        <path d="M0 0 L80 0 M54.4 0 L41.43-6.25 M54.4 0 L41.43 6.25 M36 0 L27.35-4.17 M36 0 L27.35 4.17 M0 0 L40 69.28 M27.2 47.12 L26.12 32.76 M27.2 47.12 L15.3 39.01 M18 31.18 L17.28 21.61 M18 31.18 L10.07 25.77 M0 0 L-40 69.28 M-27.2 47.12 L-15.3 39.01 M-27.2 47.12 L-26.12 32.76 M-18 31.18 L-10.07 25.77 M-18 31.18 L-17.28 21.61 M0 0 L-80 0 M-54.4 0 L-41.43 6.25 M-54.4 0 L-41.43-6.25 M-36 0 L-27.35 4.17 M-36 0 L-27.35-4.17 M0 0 L-40-69.28 M-27.2-47.12 L-26.12-32.76 M-27.2-47.12 L-15.3-39.01 M-18-31.18 L-17.28-21.61 M-18-31.18 L-10.07-25.77 M0 0 L40-69.28 M27.2-47.12 L15.3-39.01 M27.2-47.12 L26.12-32.76 M18-31.18 L10.07-25.77 M18-31.18 L17.28-21.61"
-              stroke="rgba(72,164,255,0.22)" stroke-width="13" fill="none" stroke-linecap="round"/>
-        <!-- Outer glow B -->
-        <path d="M0 0 L80 0 M54.4 0 L41.43-6.25 M54.4 0 L41.43 6.25 M36 0 L27.35-4.17 M36 0 L27.35 4.17 M0 0 L40 69.28 M27.2 47.12 L26.12 32.76 M27.2 47.12 L15.3 39.01 M18 31.18 L17.28 21.61 M18 31.18 L10.07 25.77 M0 0 L-40 69.28 M-27.2 47.12 L-15.3 39.01 M-27.2 47.12 L-26.12 32.76 M-18 31.18 L-10.07 25.77 M-18 31.18 L-17.28 21.61 M0 0 L-80 0 M-54.4 0 L-41.43 6.25 M-54.4 0 L-41.43-6.25 M-36 0 L-27.35 4.17 M-36 0 L-27.35-4.17 M0 0 L-40-69.28 M-27.2-47.12 L-26.12-32.76 M-27.2-47.12 L-15.3-39.01 M-18-31.18 L-17.28-21.61 M-18-31.18 L-10.07-25.77 M0 0 L40-69.28 M27.2-47.12 L15.3-39.01 M27.2-47.12 L26.12-32.76 M18-31.18 L10.07-25.77 M18-31.18 L17.28-21.61"
-              stroke="rgba(180,228,255,0.16)" stroke-width="18" fill="none" stroke-linecap="round"/>
-        <!-- Main snowflake (gradient + glow) -->
-        <path d="M0 0 L80 0 M54.4 0 L41.43-6.25 M54.4 0 L41.43 6.25 M36 0 L27.35-4.17 M36 0 L27.35 4.17 M0 0 L40 69.28 M27.2 47.12 L26.12 32.76 M27.2 47.12 L15.3 39.01 M18 31.18 L17.28 21.61 M18 31.18 L10.07 25.77 M0 0 L-40 69.28 M-27.2 47.12 L-15.3 39.01 M-27.2 47.12 L-26.12 32.76 M-18 31.18 L-10.07 25.77 M-18 31.18 L-17.28 21.61 M0 0 L-80 0 M-54.4 0 L-41.43 6.25 M-54.4 0 L-41.43-6.25 M-36 0 L-27.35 4.17 M-36 0 L-27.35-4.17 M0 0 L-40-69.28 M-27.2-47.12 L-26.12-32.76 M-27.2-47.12 L-15.3-39.01 M-18-31.18 L-17.28-21.61 M-18-31.18 L-10.07-25.77 M0 0 L40-69.28 M27.2-47.12 L15.3-39.01 M27.2-47.12 L26.12-32.76 M18-31.18 L10.07-25.77 M18-31.18 L17.28-21.61"
-              stroke="url(#sf-grad)" stroke-width="6.8" fill="none" stroke-linecap="round" filter="url(#sf-glow)"/>
-        <!-- White highlight -->
-        <path d="M0 0 L80 0 M54.4 0 L41.43-6.25 M54.4 0 L41.43 6.25 M36 0 L27.35-4.17 M36 0 L27.35 4.17 M0 0 L40 69.28 M27.2 47.12 L26.12 32.76 M27.2 47.12 L15.3 39.01 M18 31.18 L17.28 21.61 M18 31.18 L10.07 25.77 M0 0 L-40 69.28 M-27.2 47.12 L-15.3 39.01 M-27.2 47.12 L-26.12 32.76 M-18 31.18 L-10.07 25.77 M-18 31.18 L-17.28 21.61 M0 0 L-80 0 M-54.4 0 L-41.43 6.25 M-54.4 0 L-41.43-6.25 M-36 0 L-27.35 4.17 M-36 0 L-27.35-4.17 M0 0 L-40-69.28 M-27.2-47.12 L-26.12-32.76 M-27.2-47.12 L-15.3-39.01 M-18-31.18 L-17.28-21.61 M-18-31.18 L-10.07-25.77 M0 0 L40-69.28 M27.2-47.12 L15.3-39.01 M27.2-47.12 L26.12-32.76 M18-31.18 L10.07-25.77 M18-31.18 L17.28-21.61"
-              stroke="rgba(255,255,255,0.8)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-        <!-- Inner hexagon -->
-        <polygon points="18.4,0 9.2,15.94 -9.2,15.94 -18.4,0 -9.2,-15.94 9.2,-15.94"
-                 fill="rgba(190,233,255,0.73)" stroke="rgba(245,252,255,0.84)" stroke-width="1.6"/>
-        <!-- Tip dots -->
-        <circle cx="80"   cy="0"      r="4" fill="rgba(255,255,255,0.86)" stroke="rgba(150,214,255,0.88)" stroke-width="1.2"/>
-        <circle cx="40"   cy="69.28"  r="4" fill="rgba(255,255,255,0.86)" stroke="rgba(150,214,255,0.88)" stroke-width="1.2"/>
-        <circle cx="-40"  cy="69.28"  r="4" fill="rgba(255,255,255,0.86)" stroke="rgba(150,214,255,0.88)" stroke-width="1.2"/>
-        <circle cx="-80"  cy="0"      r="4" fill="rgba(255,255,255,0.86)" stroke="rgba(150,214,255,0.88)" stroke-width="1.2"/>
-        <circle cx="-40"  cy="-69.28" r="4" fill="rgba(255,255,255,0.86)" stroke="rgba(150,214,255,0.88)" stroke-width="1.2"/>
-        <circle cx="40"   cy="-69.28" r="4" fill="rgba(255,255,255,0.86)" stroke="rgba(150,214,255,0.88)" stroke-width="1.2"/>
-      </svg>
-
-      <!-- Key mapping visualiser -->
-      <div id="mapping-view" aria-label="Key-to-sample mapping">
-        <h2 class="panel-title">Key Mapping</h2>
-        <div id="mapping-grid" role="grid" aria-label="Mapping grid">
-          <!-- Rows filled by JS -->
-        </div>
-      </div>
-
-      <!-- Piano keyboard -->
-      <div id="keyboard-wrap" aria-label="Piano keyboard">
-        <div id="keyboard" role="group" aria-label="88-key piano keyboard">
-          <!-- Keys injected by JS -->
-        </div>
-        <div id="keyboard-scroll-hint" aria-hidden="true">← scroll →</div>
-      </div>
-
-    </section>
-
-    <!-- RIGHT: Controls Panel -->
-    <section id="controls-panel" aria-label="Sound controls">
-      <h2 class="panel-title">Controls</h2>
-
-      <!-- ADSR -->
-      <fieldset class="control-group" id="adsr-group">
-        <legend>ADSR Envelope</legend>
-        <div class="knob-row">
-          <div class="knob-wrap">
-            <canvas class="knob-canvas" data-param="attack"  data-min="0.001" data-max="4"    data-default="0.01"  aria-label="Attack"  role="slider" aria-valuemin="0.001" aria-valuemax="4"    aria-valuenow="0.01"  tabindex="0"></canvas>
-            <label class="knob-label">Attack</label>
-          </div>
-          <div class="knob-wrap">
-            <canvas class="knob-canvas" data-param="decay"   data-min="0.001" data-max="4"    data-default="0.1"   aria-label="Decay"   role="slider" aria-valuemin="0.001" aria-valuemax="4"    aria-valuenow="0.1"   tabindex="0"></canvas>
-            <label class="knob-label">Decay</label>
-          </div>
-          <div class="knob-wrap">
-            <canvas class="knob-canvas" data-param="sustain" data-min="0"     data-max="1"    data-default="0.8"   aria-label="Sustain" role="slider" aria-valuemin="0"     aria-valuemax="1"    aria-valuenow="0.8"   tabindex="0"></canvas>
-            <label class="knob-label">Sustain</label>
-          </div>
-          <div class="knob-wrap">
-            <canvas class="knob-canvas" data-param="release" data-min="0.001" data-max="10"   data-default="0.3"   aria-label="Release" role="slider" aria-valuemin="0.001" aria-valuemax="10"   aria-valuenow="0.3"   tabindex="0"></canvas>
-            <label class="knob-label">Release</label>
-          </div>
-        </div>
-      </fieldset>
-
-      <!-- Filter -->
-      <fieldset class="control-group" id="filter-group">
-        <legend>Filter</legend>
-        <div class="knob-row">
-          <div class="knob-wrap">
-            <canvas class="knob-canvas" data-param="filterFreq" data-min="20" data-max="20000" data-default="20000" aria-label="Filter cutoff" role="slider" aria-valuemin="20" aria-valuemax="20000" aria-valuenow="20000" tabindex="0"></canvas>
-            <label class="knob-label">Cutoff</label>
-          </div>
-          <div class="knob-wrap">
-            <canvas class="knob-canvas" data-param="filterRes" data-min="0.01" data-max="30" data-default="1" aria-label="Filter resonance" role="slider" aria-valuemin="0.01" aria-valuemax="30" aria-valuenow="1" tabindex="0"></canvas>
-            <label class="knob-label">Resonance</label>
-          </div>
-        </div>
-        <div class="select-row">
-          <label for="filter-type">Filter type</label>
-          <select id="filter-type" aria-label="Filter type">
+        <!-- Filter -->
+        <div class="ctrl-section">
+          <div class="ctrl-section-title">Filter</div>
+          <select class="select-ctrl" id="filter-type">
             <option value="lowpass">Low Pass</option>
             <option value="highpass">High Pass</option>
             <option value="bandpass">Band Pass</option>
             <option value="notch">Notch</option>
           </select>
+          <div class="knob-row">
+            <div class="knob-wrap">
+              <canvas class="knob" id="knob-filter-freq" width="56" height="56"
+                      data-min="20" data-max="20000" data-value="20000" data-log="1"></canvas>
+              <span class="knob-lbl">Freq</span>
+            </div>
+            <div class="knob-wrap">
+              <canvas class="knob" id="knob-filter-q" width="56" height="56"
+                      data-min="0.1" data-max="20" data-value="1"></canvas>
+              <span class="knob-lbl">Q</span>
+            </div>
+            <div class="knob-wrap">
+              <canvas class="knob" id="knob-filter-gain" width="56" height="56"
+                      data-min="-24" data-max="24" data-value="0"></canvas>
+              <span class="knob-lbl">Gain</span>
+            </div>
+          </div>
         </div>
-      </fieldset>
 
-      <!-- 3-band EQ -->
-      <fieldset class="control-group" id="eq-group">
-        <legend>3-Band EQ</legend>
-        <div class="slider-col">
-          <div class="slider-wrap">
-            <label for="eq-low">Low</label>
-            <input type="range" id="eq-low"  class="eq-slider" min="-12" max="12" step="0.1" value="0"
-                   aria-label="EQ Low"  aria-valuemin="-12" aria-valuemax="12" aria-valuenow="0" />
-            <span class="slider-val" id="eq-low-val">0 dB</span>
-          </div>
-          <div class="slider-wrap">
-            <label for="eq-mid">Mid</label>
-            <input type="range" id="eq-mid"  class="eq-slider" min="-12" max="12" step="0.1" value="0"
-                   aria-label="EQ Mid"  aria-valuemin="-12" aria-valuemax="12" aria-valuenow="0" />
-            <span class="slider-val" id="eq-mid-val">0 dB</span>
-          </div>
-          <div class="slider-wrap">
-            <label for="eq-high">High</label>
-            <input type="range" id="eq-high" class="eq-slider" min="-12" max="12" step="0.1" value="0"
-                   aria-label="EQ High" aria-valuemin="-12" aria-valuemax="12" aria-valuenow="0" />
-            <span class="slider-val" id="eq-high-val">0 dB</span>
+        <!-- EQ -->
+        <div class="ctrl-section">
+          <div class="ctrl-section-title">Equalizer</div>
+          <div class="eq-row">
+            <div class="eq-band">
+              <span class="val-lbl" id="eq-low-lbl">0</span>
+              <input type="range" class="vslider" id="eq-low"  min="-12" max="12" value="0" orient="vertical" />
+              <span class="band-lbl">Low<br/>250</span>
+            </div>
+            <div class="eq-band">
+              <span class="val-lbl" id="eq-mid-lbl">0</span>
+              <input type="range" class="vslider" id="eq-mid"  min="-12" max="12" value="0" orient="vertical" />
+              <span class="band-lbl">Mid<br/>1k</span>
+            </div>
+            <div class="eq-band">
+              <span class="val-lbl" id="eq-high-lbl">0</span>
+              <input type="range" class="vslider" id="eq-high" min="-12" max="12" value="0" orient="vertical" />
+              <span class="band-lbl">High<br/>4k</span>
+            </div>
           </div>
         </div>
-      </fieldset>
 
-      <!-- Pitch & Velocity -->
-      <fieldset class="control-group" id="pitch-vel-group">
-        <legend>Pitch & Velocity</legend>
-        <div class="knob-row">
-          <div class="knob-wrap">
-            <canvas class="knob-canvas" data-param="pitch" data-min="-24" data-max="24" data-default="0" aria-label="Pitch shift" role="slider" aria-valuemin="-24" aria-valuemax="24" aria-valuenow="0" tabindex="0"></canvas>
-            <label class="knob-label">Pitch</label>
+        <!-- Volume & Velocity -->
+        <div class="ctrl-section">
+          <div class="ctrl-section-title">Volume · Velocity</div>
+          <div class="slider-row">
+            <label>Vol</label>
+            <input type="range" class="hslider" id="master-vol" min="0" max="100" value="80" />
+            <span class="val-lbl" id="master-vol-lbl">80%</span>
           </div>
-          <div class="knob-wrap">
-            <canvas class="knob-canvas" data-param="velocity" data-min="0" data-max="1" data-default="0.8" aria-label="Velocity sensitivity" role="slider" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0.8" tabindex="0"></canvas>
-            <label class="knob-label">Velocity</label>
-          </div>
-          <div class="knob-wrap">
-            <canvas class="knob-canvas" data-param="volume" data-min="0" data-max="1" data-default="0.8" aria-label="Master volume" role="slider" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0.8" tabindex="0"></canvas>
-            <label class="knob-label">Volume</label>
+          <div class="slider-row">
+            <label>Vel</label>
+            <input type="range" class="hslider" id="vel-sens" min="0" max="100" value="100" />
+            <span class="val-lbl" id="vel-sens-lbl">100%</span>
           </div>
         </div>
-        <div class="check-row">
-          <label>
-            <input type="checkbox" id="chk-round-robin" aria-label="Enable round-robin sample cycling" />
-            Round Robin
+
+        <!-- Pitch -->
+        <div class="ctrl-section">
+          <div class="ctrl-section-title">Pitch</div>
+          <div class="knob-row">
+            <div class="knob-wrap">
+              <canvas class="knob" id="knob-pitch-coarse" width="56" height="56"
+                      data-min="-24" data-max="24" data-value="0"></canvas>
+              <span class="knob-lbl">Coarse</span>
+            </div>
+            <div class="knob-wrap">
+              <canvas class="knob" id="knob-pitch-fine" width="56" height="56"
+                      data-min="-100" data-max="100" data-value="0"></canvas>
+              <span class="knob-lbl">Fine</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Round Robin -->
+        <div class="ctrl-section">
+          <div class="ctrl-section-title">Round Robin</div>
+          <label class="toggle-label">
+            <input type="checkbox" id="rr-enable" /> Enabled
           </label>
+          <div class="slider-row">
+            <label>Vars</label>
+            <input type="range" class="hslider" id="rr-count" min="2" max="8" value="4" />
+            <span class="val-lbl" id="rr-count-lbl">4</span>
+          </div>
         </div>
-      </fieldset>
-    </section>
 
-  </main>
+      </aside>
+    </main>
 
-  <!-- ===== FOOTER: RECORDER ===== -->
-  <footer id="footer-recorder" aria-label="Recorder">
-    <div class="recorder-controls">
-      <button id="btn-record" class="rec-btn" aria-label="Start recording" aria-pressed="false">⏺ Record</button>
-      <button id="btn-stop"   class="rec-btn" aria-label="Stop recording"  disabled>⏹ Stop</button>
-      <button id="btn-play"   class="rec-btn" aria-label="Play back recording" disabled>▶ Play</button>
-      <button id="btn-export-wav" class="rec-btn" aria-label="Export recording as WAV" disabled>💾 Export WAV</button>
+    <!-- ── FOOTER / RECORDER ── -->
+    <footer class="app-footer">
+      <div class="recorder-bar">
+        <button class="btn btn-record" id="btn-record" title="Record">⏺ Record</button>
+        <button class="btn btn-transport" id="btn-play"  title="Play Back">▶ Play</button>
+        <button class="btn btn-transport" id="btn-stop"  title="Stop">⏹ Stop</button>
+        <div class="rec-display">
+          <div class="rec-dot" id="rec-dot"></div>
+          <span id="rec-time">00:00.000</span>
+        </div>
+        <div class="rec-events" id="rec-events">— no recording —</div>
+      </div>
+      <div class="export-bar">
+        <button class="btn btn-primary" id="btn-export-wav">💾 Export WAV</button>
+        <label class="license-wrap">
+          <span>License:</span>
+          <select id="license-type" class="select-ctrl">
+            <option value="personal">Personal Use</option>
+            <option value="commercial">Commercial (own license)</option>
+            <option value="cc-by">CC BY</option>
+            <option value="cc-by-sa">CC BY-SA</option>
+          </select>
+        </label>
+      </div>
+    </footer>
+
+    <!-- ── SHARE MODAL ── -->
+    <div class="modal-overlay hidden" id="modal-overlay">
+      <div class="modal" id="share-modal">
+        <div class="modal-header">
+          <h3>Share Instrument</h3>
+          <button class="btn-close" id="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p>Export your instrument as a portable <strong>.sis</strong> file that anyone can load.</p>
+          <div class="share-options">
+            <label><input type="checkbox" id="inc-samples" checked /> Include audio samples</label>
+            <label><input type="checkbox" id="inc-image"   checked /> Include background image</label>
+          </div>
+          <button class="btn btn-primary" id="btn-export-preset">📦 Export Preset (.sis)</button>
+          <hr class="modal-hr" />
+          <p class="modal-note">Recipients can load the .sis file using the <em>Load</em> button.
+             Ensure you hold the appropriate license for all included audio.</p>
+        </div>
+      </div>
     </div>
-    <div id="recorder-status" aria-live="polite" class="recorder-status">Not recording</div>
-    <div id="vu-meter" aria-hidden="true">
-      <canvas id="vu-canvas" width="300" height="30" aria-hidden="true"></canvas>
-    </div>
-  </footer>
 
-  <!-- SCRIPTS (ES modules, no eval, no inline) -->
-  <script type="module" src="js/main.js"></script>
+    <!-- Hidden load input -->
+    <input type="file" id="load-preset-input" accept=".sis,.json" style="display:none" />
+
+  </div><!-- /#app -->
+
+  <script src="js/audio-engine.js"></script>
+  <script src="js/piano-keyboard.js"></script>
+  <script src="js/sample-manager.js"></script>
+  <script src="js/controls.js"></script>
+  <script src="js/recorder.js"></script>
+  <script src="js/preset-manager.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

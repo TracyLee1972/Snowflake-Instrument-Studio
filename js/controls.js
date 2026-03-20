@@ -1,276 +1,267 @@
 /**
- * controls.js
- * SVG/Canvas knob renderer and EQ slider controller.
- * Each knob is a <canvas data-param="..."> element.
+ * Controls — Sets up knobs (canvas-based rotary) and sliders,
+ * and wires them to AudioEngine parameter updates.
  */
 
-/**
- * Initialise all knobs and EQ sliders.
- * @param {(param: string, value: number) => void} onChange  Called when any control changes.
- */
-export function initControls(onChange) {
-  _initKnobs(onChange);
-  _initEqSliders(onChange);
-  _initFilterType(onChange);
-  _initRoundRobin(onChange);
-}
+/* ──────────────────────────────────────────
+   Rotary Knob (canvas-drawn, drag to turn)
+   ────────────────────────────────────────── */
+class Knob {
+  /**
+   * @param {HTMLCanvasElement} canvas
+   * @param {{ min, max, value, log, onChange }} opts
+   */
+  constructor(canvas, opts = {}) {
+    this.canvas  = canvas;
+    this.min     = opts.min  ?? parseFloat(canvas.dataset.min  ?? '0');
+    this.max     = opts.max  ?? parseFloat(canvas.dataset.max  ?? '1');
+    this.value   = opts.value ?? parseFloat(canvas.dataset.value ?? '0');
+    this.log     = opts.log  ?? (canvas.dataset.log === '1');
+    this.onChange = opts.onChange || (() => {});
 
-/* ------------------------------------------------------------------ */
-/* Knobs                                                                 */
-/* ------------------------------------------------------------------ */
+    this._startY  = 0;
+    this._startVal = 0;
 
-const MIN_ANGLE = -135; // degrees from 12 o'clock, clockwise
-const MAX_ANGLE =  135;
-
-/**
- * @param {(param: string, value: number) => void} onChange
- */
-function _initKnobs(onChange) {
-  document.querySelectorAll('canvas.knob-canvas').forEach((canvas) => {
-    const min    = parseFloat(canvas.dataset.min);
-    const max    = parseFloat(canvas.dataset.max);
-    const defVal = parseFloat(canvas.dataset.default);
-    const param  = canvas.dataset.param;
-
-    // Internal state per knob
-    const state = { value: defVal, dragging: false, startY: 0, startValue: defVal };
-
-    // Set canvas physical size
-    canvas.width  = 48;
-    canvas.height = 48;
-
-    _drawKnob(canvas, defVal, min, max);
-
-    // ---- Pointer drag (mouse + touch via pointer events) ----
-    canvas.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      canvas.setPointerCapture(e.pointerId);
-      state.dragging   = true;
-      state.startY     = e.clientY;
-      state.startValue = state.value;
-    });
-
-    canvas.addEventListener('pointermove', (e) => {
-      if (!state.dragging) return;
-      const delta = (state.startY - e.clientY) / 150; // px → normalised
-      const range = max - min;
-      const newVal = Math.min(max, Math.max(min, state.startValue + delta * range));
-      state.value = newVal;
-      _drawKnob(canvas, newVal, min, max);
-      _updateAria(canvas, newVal);
-      onChange(param, newVal);
-    });
-
-    canvas.addEventListener('pointerup', () => {
-      state.dragging = false;
-    });
-
-    canvas.addEventListener('pointercancel', () => {
-      state.dragging = false;
-    });
-
-    // ---- Double-click to reset ----
-    canvas.addEventListener('dblclick', () => {
-      state.value = defVal;
-      _drawKnob(canvas, defVal, min, max);
-      _updateAria(canvas, defVal);
-      onChange(param, defVal);
-    });
-
-    // ---- Scroll wheel ----
-    canvas.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      const step  = (max - min) / 100;
-      const delta = e.deltaY < 0 ? step : -step;
-      state.value = Math.min(max, Math.max(min, state.value + delta));
-      _drawKnob(canvas, state.value, min, max);
-      _updateAria(canvas, state.value);
-      onChange(param, state.value);
-    }, { passive: false });
-
-    // ---- Keyboard (arrow keys for accessibility) ----
-    canvas.addEventListener('keydown', (e) => {
-      const step = (max - min) / 100;
-      if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
-        e.preventDefault();
-        state.value = Math.min(max, state.value + step);
-      } else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') {
-        e.preventDefault();
-        state.value = Math.max(min, state.value - step);
-      } else {
-        return;
-      }
-      _drawKnob(canvas, state.value, min, max);
-      _updateAria(canvas, state.value);
-      onChange(param, state.value);
-    });
-
-    // Expose setter for programmatic value updates
-    canvas._setValue = (val) => {
-      state.value = Math.min(max, Math.max(min, val));
-      _drawKnob(canvas, state.value, min, max);
-      _updateAria(canvas, state.value);
-    };
-  });
-}
-
-/**
- * Draw a knob on a canvas element.
- * @param {HTMLCanvasElement} canvas
- * @param {number} value
- * @param {number} min
- * @param {number} max
- */
-function _drawKnob(canvas, value, min, max) {
-  const ctx  = canvas.getContext('2d');
-  const cx   = canvas.width  / 2;
-  const cy   = canvas.height / 2;
-  const r    = (canvas.width / 2) - 4;
-  const norm = (value - min) / (max - min); // 0–1
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // --- Background circle ---
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#1c1d24';
-  ctx.fill();
-  ctx.strokeStyle = '#2e303c';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // --- Track arc (full range, dimmed) ---
-  const startRad = _degToRad(MIN_ANGLE - 90);
-  const endRad   = _degToRad(MAX_ANGLE - 90);
-  ctx.beginPath();
-  ctx.arc(cx, cy, r - 4, startRad, endRad);
-  ctx.strokeStyle = '#3a3c4a';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  // --- Value arc ---
-  const actualValueRad = startRad + norm * (_degToRad(MAX_ANGLE - MIN_ANGLE));
-  ctx.beginPath();
-  ctx.arc(cx, cy, r - 4, startRad, actualValueRad);
-  ctx.strokeStyle = '#5cf0e0';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  // --- Pointer line ---
-  const pAngle  = MIN_ANGLE + norm * (MAX_ANGLE - MIN_ANGLE); // degrees
-  const pRad    = _degToRad(pAngle - 90);
-  const lineLen = r - 6;
-  ctx.beginPath();
-  ctx.moveTo(cx, cy);
-  ctx.lineTo(cx + lineLen * Math.cos(pRad), cy + lineLen * Math.sin(pRad));
-  ctx.strokeStyle = '#5cf0e0';
-  ctx.lineWidth = 2;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-
-  // --- Center dot ---
-  ctx.beginPath();
-  ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-  ctx.fillStyle = '#5cf0e0';
-  ctx.fill();
-}
-
-/** @param {number} deg @returns {number} */
-function _degToRad(deg) { return (deg * Math.PI) / 180; }
-function _updateAria(canvas, value) {
-  canvas.setAttribute('aria-valuenow', String(value.toFixed(3)));
-}
-
-/* ------------------------------------------------------------------ */
-/* EQ sliders                                                            */
-/* ------------------------------------------------------------------ */
-
-function _initEqSliders(onChange) {
-  const sliders = [
-    { id: 'eq-low',  valId: 'eq-low-val',  param: 'eqLow'  },
-    { id: 'eq-mid',  valId: 'eq-mid-val',  param: 'eqMid'  },
-    { id: 'eq-high', valId: 'eq-high-val', param: 'eqHigh' },
-  ];
-
-  sliders.forEach(({ id, valId, param }) => {
-    const slider = document.getElementById(id);
-    const valEl  = document.getElementById(valId);
-    if (!slider || !valEl) return;
-
-    slider.addEventListener('input', () => {
-      const val = parseFloat(slider.value);
-      valEl.textContent = `${val >= 0 ? '+' : ''}${val.toFixed(1)} dB`;
-      slider.setAttribute('aria-valuenow', String(val));
-      onChange(param, val);
-    });
-
-    // Expose programmatic setter
-    slider._setValue = (val) => {
-      const clamped = Math.min(12, Math.max(-12, val));
-      slider.value = String(clamped);
-      valEl.textContent = `${clamped >= 0 ? '+' : ''}${clamped.toFixed(1)} dB`;
-      slider.setAttribute('aria-valuenow', String(clamped));
-    };
-  });
-}
-
-/* ------------------------------------------------------------------ */
-/* Filter type select                                                    */
-/* ------------------------------------------------------------------ */
-
-function _initFilterType(onChange) {
-  const sel = document.getElementById('filter-type');
-  if (!sel) return;
-  sel.addEventListener('change', () => onChange('filterType', sel.value));
-}
-
-/* ------------------------------------------------------------------ */
-/* Round-robin checkbox                                                  */
-/* ------------------------------------------------------------------ */
-
-function _initRoundRobin(onChange) {
-  const chk = document.getElementById('chk-round-robin');
-  if (!chk) return;
-  chk.addEventListener('change', () => onChange('roundRobin', chk.checked));
-}
-
-/* ------------------------------------------------------------------ */
-/* Public: restore a knob/slider value programmatically                 */
-/* ------------------------------------------------------------------ */
-
-/**
- * Set a control's displayed value without triggering onChange.
- * @param {string} param
- * @param {number|string|boolean} value
- */
-export function setControlValue(param, value) {
-  // Knob canvas
-  const canvas = document.querySelector(`canvas.knob-canvas[data-param="${param}"]`);
-  if (canvas && canvas._setValue) {
-    canvas._setValue(Number(value));
-    return;
+    this._draw();
+    this._attachEvents();
   }
 
-  // EQ sliders
-  if (param === 'eqLow' || param === 'eqMid' || param === 'eqHigh') {
-    const idMap = { eqLow: 'eq-low', eqMid: 'eq-mid', eqHigh: 'eq-high' };
-    const slider = document.getElementById(idMap[param]);
-    if (slider && slider._setValue) {
-      slider._setValue(Number(value));
+  setValue(v) {
+    this.value = Math.max(this.min, Math.min(this.max, v));
+    this._draw();
+  }
+
+  /* normalised 0-1 */
+  _norm(v) {
+    if (this.log) {
+      const logMin = Math.log(Math.max(this.min, 0.001));
+      const logMax = Math.log(Math.max(this.max, 0.001));
+      return (Math.log(Math.max(v, 0.001)) - logMin) / (logMax - logMin);
     }
-    return;
+    return (v - this.min) / (this.max - this.min);
+  }
+  _fromNorm(n) {
+    if (this.log) {
+      const logMin = Math.log(Math.max(this.min, 0.001));
+      const logMax = Math.log(Math.max(this.max, 0.001));
+      return Math.exp(logMin + n * (logMax - logMin));
+    }
+    return this.min + n * (this.max - this.min);
   }
 
-  // Filter type
-  if (param === 'filterType') {
-    const sel = document.getElementById('filter-type');
-    if (sel) sel.value = String(value);
-    return;
+  _draw() {
+    const c = this.canvas;
+    const ctx = c.getContext('2d');
+    const w = c.width, h = c.height;
+    const cx = w / 2, cy = h / 2;
+    const r  = Math.min(w, h) / 2 - 4;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Track arc
+    const startAngle = Math.PI * 0.75;
+    const endAngle   = Math.PI * 2.25;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.strokeStyle = '#2a3040';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Value arc
+    const norm  = this._norm(this.value);
+    const angle = startAngle + norm * (endAngle - startAngle);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, angle);
+    ctx.strokeStyle = '#4a9eff';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Knob body
+    const grad = ctx.createRadialGradient(cx - r * 0.2, cy - r * 0.2, 1, cx, cy, r - 5);
+    grad.addColorStop(0, '#3a4050');
+    grad.addColorStop(1, '#1a1d25');
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 5, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Pointer line
+    const px = cx + (r - 8) * Math.cos(angle);
+    const py = cy + (r - 8) * Math.sin(angle);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(px, py);
+    ctx.strokeStyle = '#e0e8ff';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Value text
+    ctx.fillStyle = '#7a90b8';
+    ctx.font = `bold ${Math.max(7, w * 0.18)}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const txt = this._formatValue();
+    ctx.fillText(txt, cx, cy + r * 0.15);
   }
 
-  // Round robin
-  if (param === 'roundRobin') {
-    const chk = document.getElementById('chk-round-robin');
-    if (chk) chk.checked = Boolean(value);
+  _formatValue() {
+    const v = this.value;
+    if (this.log && v >= 1000) return (v / 1000).toFixed(1) + 'k';
+    if (Math.abs(v) < 10)  return v.toFixed(2);
+    if (Math.abs(v) < 100) return v.toFixed(1);
+    return Math.round(v).toString();
   }
+
+  _attachEvents() {
+    const c = this.canvas;
+
+    const onMove = (e) => {
+      const dy = this._startY - (e.clientY ?? e.touches?.[0]?.clientY);
+      const sensitivity = 0.004;
+      const normDelta = dy * sensitivity;
+      const newNorm = Math.max(0, Math.min(1, this._norm(this._startVal) + normDelta));
+      this.value = this._fromNorm(newNorm);
+      this._draw();
+      this.onChange(this.value);
+    };
+
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup',   onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend',  onUp);
+      c.style.cursor = 'ns-resize';
+    };
+
+    c.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      this._startY   = e.clientY;
+      this._startVal = this.value;
+      c.style.cursor = 'grabbing';
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup',   onUp);
+    });
+
+    c.addEventListener('touchstart', (e) => {
+      this._startY   = e.touches[0].clientY;
+      this._startVal = this.value;
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('touchend',  onUp);
+    }, { passive: true });
+
+    // Double-click to reset
+    c.addEventListener('dblclick', () => {
+      const def = parseFloat(c.dataset.value ?? '0');
+      this.setValue(def);
+      this.onChange(this.value);
+    });
+
+    c.style.cursor = 'ns-resize';
+  }
+}
+
+/* ──────────────────────────────────────────
+   Controls module init
+   ────────────────────────────────────────── */
+function initControls(audioEngine) {
+  const knobs = new Map();
+
+  function setupKnob(id, onChange) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return null;
+    const k = new Knob(canvas, { onChange });
+    knobs.set(id, k);
+    return k;
+  }
+
+  function setupSlider(id, displayId, format, onChange) {
+    const el = document.getElementById(id);
+    const lbl = displayId ? document.getElementById(displayId) : null;
+    if (!el) return;
+    const update = () => {
+      const v = parseFloat(el.value);
+      if (lbl) lbl.textContent = format(v);
+      onChange(v);
+    };
+    el.addEventListener('input', update);
+    update(); // init display
+  }
+
+  /* ── ADSR ── */
+  const adsrCanvas = document.getElementById('adsr-canvas');
+
+  function drawADSR() {
+    if (!adsrCanvas) return;
+    const ctx = adsrCanvas.getContext('2d');
+    const w = adsrCanvas.width, h = adsrCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const a = audioEngine.attack;
+    const d = audioEngine.decay;
+    const s = audioEngine.sustain;
+    const r = audioEngine.release;
+    const total = Math.max(a + d + 0.3 + r, 0.5);
+
+    const toX = t => 8 + (t / total) * (w - 16);
+    const toY = v => (h - 8) - v * (h - 16);
+
+    ctx.beginPath();
+    ctx.moveTo(toX(0), toY(0));
+    ctx.lineTo(toX(a), toY(1));
+    ctx.lineTo(toX(a + d), toY(s));
+    ctx.lineTo(toX(a + d + 0.3), toY(s));
+    ctx.lineTo(toX(a + d + 0.3 + r), toY(0));
+
+    ctx.strokeStyle = '#4a9eff';
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    ctx.lineTo(toX(0), toY(0));
+    ctx.fillStyle = 'rgba(74,158,255,0.12)';
+    ctx.fill();
+  }
+
+  function sToTime(v) { return (v / 100) * (v / 100) * 5; } // exponential 0–5 s
+
+  setupSlider('adsr-attack',  'adsr-attack-lbl',  v => sToTime(v).toFixed(2) + 's', v => { audioEngine.setAttack(sToTime(v));  drawADSR(); });
+  setupSlider('adsr-decay',   'adsr-decay-lbl',   v => sToTime(v).toFixed(2) + 's', v => { audioEngine.setDecay(sToTime(v));   drawADSR(); });
+  setupSlider('adsr-sustain', 'adsr-sustain-lbl', v => Math.round(v) + '%',          v => { audioEngine.setSustain(v / 100);    drawADSR(); });
+  setupSlider('adsr-release', 'adsr-release-lbl', v => sToTime(v).toFixed(2) + 's', v => { audioEngine.setRelease(sToTime(v)); drawADSR(); });
+
+  drawADSR();
+
+  /* ── Filter ── */
+  const filterTypeEl = document.getElementById('filter-type');
+  if (filterTypeEl) {
+    filterTypeEl.addEventListener('change', () => audioEngine.setFilterType(filterTypeEl.value));
+  }
+
+  setupKnob('knob-filter-freq',  v => audioEngine.setFilterFreq(v));
+  setupKnob('knob-filter-q',     v => audioEngine.setFilterQ(v));
+  setupKnob('knob-filter-gain',  v => audioEngine.setFilterGain(v));
+
+  /* ── EQ ── */
+  setupSlider('eq-low',  'eq-low-lbl',  v => (v >= 0 ? '+' : '') + v + 'dB', v => audioEngine.setEqLow(v));
+  setupSlider('eq-mid',  'eq-mid-lbl',  v => (v >= 0 ? '+' : '') + v + 'dB', v => audioEngine.setEqMid(v));
+  setupSlider('eq-high', 'eq-high-lbl', v => (v >= 0 ? '+' : '') + v + 'dB', v => audioEngine.setEqHigh(v));
+
+  /* ── Volume & Velocity ── */
+  setupSlider('master-vol', 'master-vol-lbl', v => Math.round(v) + '%',  v => audioEngine.setMasterVolume(v / 100));
+  setupSlider('vel-sens',   'vel-sens-lbl',   v => Math.round(v) + '%',  v => { audioEngine.velocitySens = v / 100; });
+
+  /* ── Pitch ── */
+  setupKnob('knob-pitch-coarse', v => { audioEngine.pitchCoarse = Math.round(v); });
+  setupKnob('knob-pitch-fine',   v => { audioEngine.pitchFine   = v; });
+
+  /* ── Round Robin ── */
+  const rrEnable = document.getElementById('rr-enable');
+  if (rrEnable) {
+    rrEnable.addEventListener('change', () => { audioEngine.roundRobinEnabled = rrEnable.checked; });
+  }
+  setupSlider('rr-count', 'rr-count-lbl', v => Math.round(v), () => {});
+
+  return { drawADSR, knobs };
 }
