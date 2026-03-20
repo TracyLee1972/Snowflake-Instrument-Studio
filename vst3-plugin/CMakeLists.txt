@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(SnowflakeInstrumentStudio VERSION 1.0.0 LANGUAGES CXX)
+project(SnowflakeInstrumentStudio VERSION 1.0.0 LANGUAGES C CXX)
 
 # ============================================================================
 # Build Options
@@ -54,14 +54,14 @@ if(BUILD_VST3)
 
     target_sources(SnowflakeInstrumentStudio-VST3 PRIVATE ${SNOWFLAKE_SOURCES})
     target_compile_features(SnowflakeInstrumentStudio-VST3 PRIVATE cxx_std_17)
+    target_compile_definitions(SnowflakeInstrumentStudio-VST3 PRIVATE JUCE_USE_X11=0 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
     
     target_link_libraries(SnowflakeInstrumentStudio-VST3
         PRIVATE
-            juce::juce_audio_utils
             juce::juce_audio_processors
+            juce::juce_audio_formats
             juce::juce_core
             juce::juce_gui_basics
-            juce::juce_gui_extra
         PUBLIC
             juce::juce_recommended_config_flags
             juce::juce_recommended_lto_flags
@@ -90,14 +90,14 @@ if(BUILD_STANDALONE)
     )
 
     target_compile_features(SnowflakeInstrumentStudio-Standalone PRIVATE cxx_std_17)
+    target_compile_definitions(SnowflakeInstrumentStudio-Standalone PRIVATE JUCE_USE_X11=0 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
     
     target_link_libraries(SnowflakeInstrumentStudio-Standalone
         PRIVATE
-            juce::juce_audio_utils
             juce::juce_audio_processors
+            juce::juce_audio_formats
             juce::juce_core
             juce::juce_gui_basics
-            juce::juce_gui_extra
         PUBLIC
             juce::juce_recommended_config_flags
             juce::juce_recommended_lto_flags

@@ -1,13 +1,13 @@
 #pragma once
 
-#include <juce_gui_extra/juce_gui_extra.h>
+#include <juce_gui_basics/juce_gui_basics.h>
 #include "PluginProcessor.h"
 
 class StandaloneMainWindow : public juce::DocumentWindow
 {
 public:
     StandaloneMainWindow(const juce::String& name)
-        : DocumentWindow(name, juce::Colours::darkgrey, allWindow, true)
+        : DocumentWindow(name, juce::Colours::darkgrey, juce::DocumentWindow::allButtons, true)
     {
         audioProcessor = std::make_unique<SnowflakeInstrumentStudioAudioProcessor>();
         editor = audioProcessor->createEditor();
@@ -40,7 +40,7 @@ public:
     StandaloneApplication() = default;
 
     const juce::String getApplicationName() override { return "Snowflake Instrument Studio"; }
-    const juce::String getApplicationVersion() override { return JUCE_APPLICATION_VERSION_STRING; }
+    const juce::String getApplicationVersion() override { return "1.0.0"; }
     bool moreThanOneInstanceAllowed() override { return true; }
 
     void initialise(const juce::String&) override

@@ -205,23 +205,23 @@ void SnowflakeInstrumentStudioAudioProcessorEditor::resized()
 void SnowflakeInstrumentStudioAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
 {
     if (slider == &attackSlider && audioProcessor.attackParam)
-        audioProcessor.attackParam->setValueNotifyingHost(attackSlider.getValue());
+        audioProcessor.attackParam->setValueNotifyingHost(audioProcessor.attackParam->convertTo0to1(static_cast<float>(attackSlider.getValue())));
     else if (slider == &decaySlider && audioProcessor.decayParam)
-        audioProcessor.decayParam->setValueNotifyingHost(decaySlider.getValue());
+        audioProcessor.decayParam->setValueNotifyingHost(audioProcessor.decayParam->convertTo0to1(static_cast<float>(decaySlider.getValue())));
     else if (slider == &masterVolSlider && audioProcessor.masterVolParam)
-        audioProcessor.masterVolParam->setValueNotifyingHost(masterVolSlider.getValue());
+        audioProcessor.masterVolParam->setValueNotifyingHost(audioProcessor.masterVolParam->convertTo0to1(static_cast<float>(masterVolSlider.getValue())));
     else if (slider == &velSensSlider && audioProcessor.velSensParam)
-        audioProcessor.velSensParam->setValueNotifyingHost(velSensSlider.getValue());
+        audioProcessor.velSensParam->setValueNotifyingHost(audioProcessor.velSensParam->convertTo0to1(static_cast<float>(velSensSlider.getValue())));
     else if (slider == &filterFreqSlider && audioProcessor.filterFreqParam)
-        audioProcessor.filterFreqParam->setValueNotifyingHost(filterFreqSlider.getValue());
+        audioProcessor.filterFreqParam->setValueNotifyingHost(audioProcessor.filterFreqParam->convertTo0to1(static_cast<float>(filterFreqSlider.getValue())));
     else if (slider == &filterQSlider && audioProcessor.filterQParam)
-        audioProcessor.filterQParam->setValueNotifyingHost(filterQSlider.getValue());
+        audioProcessor.filterQParam->setValueNotifyingHost(audioProcessor.filterQParam->convertTo0to1(static_cast<float>(filterQSlider.getValue())));
     else if (slider == &eqLowSlider && audioProcessor.eqLowParam)
-        audioProcessor.eqLowParam->setValueNotifyingHost(eqLowSlider.getValue());
+        audioProcessor.eqLowParam->setValueNotifyingHost(audioProcessor.eqLowParam->convertTo0to1(static_cast<float>(eqLowSlider.getValue())));
     else if (slider == &eqMidSlider && audioProcessor.eqMidParam)
-        audioProcessor.eqMidParam->setValueNotifyingHost(eqMidSlider.getValue());
+        audioProcessor.eqMidParam->setValueNotifyingHost(audioProcessor.eqMidParam->convertTo0to1(static_cast<float>(eqMidSlider.getValue())));
     else if (slider == &eqHighSlider && audioProcessor.eqHighParam)
-        audioProcessor.eqHighParam->setValueNotifyingHost(eqHighSlider.getValue());
+        audioProcessor.eqHighParam->setValueNotifyingHost(audioProcessor.eqHighParam->convertTo0to1(static_cast<float>(eqHighSlider.getValue())));
 }
 
 void SnowflakeInstrumentStudioAudioProcessorEditor::buttonClicked(juce::Button* button)
@@ -254,24 +254,20 @@ void SnowflakeInstrumentStudioAudioProcessorEditor::buttonClicked(juce::Button* 
         fileChooser = std::make_unique<juce::FileChooser>(
             "Export Recording as WAV",
             juce::File::getSpecialLocation(juce::File::userDesktopDirectory),
-            "*.wav",
-            true,
-            false,
-            this
+            "*.wav"
         );
-        fileChooser->browseForFileToSave(false);
+        fileChooser->launchAsync(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles,
+                                 [this](const juce::FileChooser& chooser) { handleFileChooserResult(chooser); });
     }
     else if (button == &browseSamplesButton)
     {
         fileChooser = std::make_unique<juce::FileChooser>(
             "Select WAV Sample Files",
             juce::File::getSpecialLocation(juce::File::userMusicDirectory),
-            "*.wav",
-            true,
-            false,
-            this
+            "*.wav"
         );
-        fileChooser->browseForMultipleFilesToOpen();
+        fileChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::canSelectMultipleItems,
+                                 [this](const juce::FileChooser& chooser) { handleFileChooserResult(chooser); });
     }
     else if (button == &autoMapButton)
     {
@@ -295,33 +291,21 @@ void SnowflakeInstrumentStudioAudioProcessorEditor::buttonClicked(juce::Button* 
         fileChooser = std::make_unique<juce::FileChooser>(
             "Select Background Image",
             juce::File::getSpecialLocation(juce::File::userDesktopDirectory),
-            "*.png;*.jpg;*.jpeg",
-            true,
-            false,
-            this
+            "*.png;*.jpg;*.jpeg"
         );
-        fileChooser->browseForFileToOpen();
+        fileChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles,
+                                 [this](const juce::FileChooser& chooser) { handleFileChooserResult(chooser); });
     }
     else if (button == &roundRobinButton)
     {
         if (audioProcessor.roundRobinParam)
-            audioProcessor.roundRobinParam->setValueNotifyingHost(
-                roundRobinButton.getToggleState() ? 1.0f : 0.0f
-            );
+            audioProcessor.roundRobinParam->setValueNotifyingHost(roundRobinButton.getToggleState() ? 1.0f : 0.0f);
     }
 }
 
-void SnowflakeInstrumentStudioAudioProcessorEditor::fileChooserBoxWaiting(juce::FileChooser*)
+void SnowflakeInstrumentStudioAudioProcessorEditor::handleFileChooserResult(const juce::FileChooser& chooser)
 {
-    // Optional: Show loading indicator
-}
-
-void SnowflakeInstrumentStudioAudioProcessorEditor::fileChooserBoxFinished(juce::FileChooser* chooser)
-{
-    if (!chooser)
-        return;
-
-    auto results = chooser->getResults();
+    auto results = chooser.getResults();
     if (results.isEmpty())
         return;
 

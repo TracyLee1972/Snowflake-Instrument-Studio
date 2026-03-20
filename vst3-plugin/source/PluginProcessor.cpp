@@ -16,60 +16,19 @@ SnowflakeInstrumentStudioAudioProcessor::~SnowflakeInstrumentStudioAudioProcesso
 
 void SnowflakeInstrumentStudioAudioProcessor::createParameters()
 {
-    auto& params = getParameters();
-
-    attackParam = dynamic_cast<juce::AudioParameterFloat*>(
-        params.createAndAddParameter(std::make_unique<juce::AudioParameterFloat>(
-            "attack", "Attack", 0.0f, 5.0f, 0.01f)));
-
-    decayParam = dynamic_cast<juce::AudioParameterFloat*>(
-        params.createAndAddParameter(std::make_unique<juce::AudioParameterFloat>(
-            "decay", "Decay", 0.0f, 5.0f, 0.1f)));
-
-    sustainParam = dynamic_cast<juce::AudioParameterFloat*>(
-        params.createAndAddParameter(std::make_unique<juce::AudioParameterFloat>(
-            "sustain", "Sustain", 0.0f, 1.0f, 0.8f)));
-
-    releaseParam = dynamic_cast<juce::AudioParameterFloat*>(
-        params.createAndAddParameter(std::make_unique<juce::AudioParameterFloat>(
-            "release", "Release", 0.0f, 5.0f, 0.3f)));
-
-    masterVolParam = dynamic_cast<juce::AudioParameterFloat*>(
-        params.createAndAddParameter(std::make_unique<juce::AudioParameterFloat>(
-            "masterVol", "Master Volume", 0.0f, 1.0f, 0.8f)));
-
-    velSensParam = dynamic_cast<juce::AudioParameterFloat*>(
-        params.createAndAddParameter(std::make_unique<juce::AudioParameterFloat>(
-            "velSens", "Velocity Sensitivity", 0.0f, 1.0f, 1.0f)));
-
-    filterTypeParam = dynamic_cast<juce::AudioParameterChoice*>(
-        params.createAndAddParameter(std::make_unique<juce::AudioParameterChoice>(
-            "filterType", "Filter Type", juce::StringArray("Low Pass", "High Pass", "Band Pass", "Notch"), 0)));
-
-    filterFreqParam = dynamic_cast<juce::AudioParameterFloat*>(
-        params.createAndAddParameter(std::make_unique<juce::AudioParameterFloat>(
-            juce::NormalisableRange<float>(20.0f, 20000.0f, 0.0f, 0.2f),
-            "filterFreq", "Filter Frequency", 20000.0f)));
-
-    filterQParam = dynamic_cast<juce::AudioParameterFloat*>(
-        params.createAndAddParameter(std::make_unique<juce::AudioParameterFloat>(
-            "filterQ", "Filter Q", 0.1f, 20.0f, 1.0f)));
-
-    eqLowParam = dynamic_cast<juce::AudioParameterFloat*>(
-        params.createAndAddParameter(std::make_unique<juce::AudioParameterFloat>(
-            "eqLow", "EQ Low", -12.0f, 12.0f, 0.0f)));
-
-    eqMidParam = dynamic_cast<juce::AudioParameterFloat*>(
-        params.createAndAddParameter(std::make_unique<juce::AudioParameterFloat>(
-            "eqMid", "EQ Mid", -12.0f, 12.0f, 0.0f)));
-
-    eqHighParam = dynamic_cast<juce::AudioParameterFloat*>(
-        params.createAndAddParameter(std::make_unique<juce::AudioParameterFloat>(
-            "eqHigh", "EQ High", -12.0f, 12.0f, 0.0f)));
-
-    roundRobinParam = dynamic_cast<juce::AudioParameterBool*>(
-        params.createAndAddParameter(std::make_unique<juce::AudioParameterBool>(
-            "roundRobin", "Round Robin", false)));
+    addParameter(attackParam = new juce::AudioParameterFloat("attack", "Attack", 0.0f, 5.0f, 0.01f));
+    addParameter(decayParam = new juce::AudioParameterFloat("decay", "Decay", 0.0f, 5.0f, 0.1f));
+    addParameter(sustainParam = new juce::AudioParameterFloat("sustain", "Sustain", 0.0f, 1.0f, 0.8f));
+    addParameter(releaseParam = new juce::AudioParameterFloat("release", "Release", 0.0f, 5.0f, 0.3f));
+    addParameter(masterVolParam = new juce::AudioParameterFloat("masterVol", "Master Volume", 0.0f, 1.0f, 0.8f));
+    addParameter(velSensParam = new juce::AudioParameterFloat("velSens", "Velocity Sensitivity", 0.0f, 1.0f, 1.0f));
+    addParameter(filterTypeParam = new juce::AudioParameterChoice("filterType", "Filter Type", juce::StringArray("Low Pass", "High Pass", "Band Pass", "Notch"), 0));
+    addParameter(filterFreqParam = new juce::AudioParameterFloat("filterFreq", "Filter Frequency", juce::NormalisableRange<float>(20.0f, 20000.0f, 0.0f, 0.2f), 20000.0f));
+    addParameter(filterQParam = new juce::AudioParameterFloat("filterQ", "Filter Q", 0.1f, 20.0f, 1.0f));
+    addParameter(eqLowParam = new juce::AudioParameterFloat("eqLow", "EQ Low", -12.0f, 12.0f, 0.0f));
+    addParameter(eqMidParam = new juce::AudioParameterFloat("eqMid", "EQ Mid", -12.0f, 12.0f, 0.0f));
+    addParameter(eqHighParam = new juce::AudioParameterFloat("eqHigh", "EQ High", -12.0f, 12.0f, 0.0f));
+    addParameter(roundRobinParam = new juce::AudioParameterBool("roundRobin", "Round Robin", false));
 }
 
 void SnowflakeInstrumentStudioAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -131,9 +90,7 @@ juce::AudioProcessorEditor* SnowflakeInstrumentStudioAudioProcessor::createEdito
 
 void SnowflakeInstrumentStudioAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    auto state = parametersTree.state;
-
-    auto xml = state.createXml();
+    auto xml = parametersTree.createXml();
     copyXmlToBinary(*xml, destData);
 }
 
@@ -142,7 +99,7 @@ void SnowflakeInstrumentStudioAudioProcessor::setStateInformation(const void* da
     auto xmlState = getXmlFromBinary(data, sizeInBytes);
 
     if (xmlState != nullptr)
-        parametersTree.state = juce::ValueTree::fromXml(*xmlState);
+    parametersTree = juce::ValueTree::fromXml(*xmlState);
 }
 
 void SnowflakeInstrumentStudioAudioProcessor::updateEngineFromParameters()
@@ -162,8 +119,8 @@ void SnowflakeInstrumentStudioAudioProcessor::updateEngineFromParameters()
     if (roundRobinParam) audioEngine.setRoundRobinEnabled(roundRobinParam->get());
 }
 
-void SnowflakeInstrumentStudioAudioProcessor::valueTreePropertyChanged(juce::ValueTree& tree,
-                                                                        const juce::Identifier& property)
+void SnowflakeInstrumentStudioAudioProcessor::valueTreePropertyChanged(juce::ValueTree&,
+                                                                        const juce::Identifier&)
 {
     updateEngineFromParameters();
 }

@@ -5,8 +5,7 @@
 
 class SnowflakeInstrumentStudioAudioProcessorEditor : public juce::AudioProcessorEditor,
                                                        public juce::Slider::Listener,
-                                                       public juce::Button::Listener,
-                                                       public juce::FileChooser::Listener
+                                                       public juce::Button::Listener
 {
 public:
     SnowflakeInstrumentStudioAudioProcessorEditor(SnowflakeInstrumentStudioAudioProcessor&);
@@ -16,8 +15,6 @@ public:
     void resized() override;
     void sliderValueChanged(juce::Slider* slider) override;
     void buttonClicked(juce::Button* button) override;
-    void fileChooserBoxWaiting(juce::FileChooser*) override;
-    void fileChooserBoxFinished(juce::FileChooser* chooser) override;
 
 private:
     SnowflakeInstrumentStudioAudioProcessor& audioProcessor;
@@ -74,6 +71,7 @@ private:
     void setupLabel(juce::Label& label, const juce::String& text);
     void setupButton(juce::TextButton& button, const juce::String& text);
     void buildNoteCombo(juce::ComboBox& combo);
+    void handleFileChooserResult(const juce::FileChooser& chooser);
     void updateRecordingDisplay();
     void drawPianoKeyboard(juce::Graphics& g, const juce::Rectangle<int>& area);
 

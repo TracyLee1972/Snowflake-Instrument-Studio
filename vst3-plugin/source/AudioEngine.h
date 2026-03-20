@@ -52,6 +52,7 @@ private:
         float envelope = 0.0f;
         float phase = 0.0f;
         int originalMidiNote = -1;
+        float velocityGain = 1.0f;
     };
 
     std::map<int, std::vector<std::unique_ptr<juce::AudioBuffer<float>>>> samples; // midiNote -> buffers

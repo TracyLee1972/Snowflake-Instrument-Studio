@@ -41,11 +41,11 @@ void AudioEngine::noteOn(int midiNote, float velocity)
     if (roundRobinEnabled)
     {
         int& rrIdx = roundRobinIndices[midiNote];
-        idx = rrIdx % it->second.size();
+        idx = rrIdx % static_cast<int>(it->second.size());
         rrIdx++;
     }
 
-    const auto& buffer = it->second[idx];
+    const auto& buffer = it->second[static_cast<size_t>(idx)];
     velocity = juce::jlimit(0.0f, 1.0f, velocity);
 
     // Velocity → gain: linear blend
@@ -57,6 +57,7 @@ void AudioEngine::noteOn(int midiNote, float velocity)
     voice.envelope = 0.0f;
     voice.phase = 0.0f;
     voice.originalMidiNote = midiNote;
+    voice.velocityGain = velGain;
 
     activeVoices[midiNote] = std::move(voice);
     adsr.noteOn(midiNote);
@@ -120,7 +121,7 @@ void AudioEngine::processAudio(juce::AudioBuffer<float>& buffer, int numSamples)
             continue;
 
         float pitchRate = getMidiNotePitchShift(midiNote, voice.originalMidiNote);
-        float envGain = envelopeValues[adsr.getNoteIndex(midiNote)];
+        float envGain = envelopeValues[static_cast<size_t>(adsr.getNoteIndex(midiNote))];
 
         for (int sample = 0; sample < numSamples; ++sample)
         {
@@ -142,7 +143,7 @@ void AudioEngine::processAudio(juce::AudioBuffer<float>& buffer, int numSamples)
             float s1 = voice.buffer->getSample(0, (pos + 1) % voice.buffer->getNumSamples());
             float sampleValue = s0 + frac * (s1 - s0);
 
-            float outSample = sampleValue * envGain * masterVolume;
+            float outSample = sampleValue * envGain * voice.velocityGain * masterVolume;
 
             for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
                 buffer.addSample(ch, sample, outSample);

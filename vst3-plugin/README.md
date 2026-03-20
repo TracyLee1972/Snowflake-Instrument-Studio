@@ -57,6 +57,42 @@ See [BUILD.md](#building-from-source) below.
 
 ---
 
+## ⚡ Quick Release Commands
+
+Use these one-command wrappers to build + package with installers and docs:
+
+### Windows
+
+```bat
+release-all.bat
+```
+
+This runs the Windows pipeline and produces:
+- `dist/SnowflakeInstrumentStudio-1.0.0-Windows.zip`
+- `dist/SnowflakeInstrumentStudio-1.0.0-Windows.zip.sha256`
+
+### macOS
+
+```bash
+./release-all.sh
+```
+
+On macOS, this runs the macOS pipeline and produces:
+- `dist/SnowflakeInstrumentStudio-1.0.0-macOS.zip`
+- `dist/SnowflakeInstrumentStudio-1.0.0-macOS.zip.sha256`
+
+### Linux
+
+```bash
+./release-all.sh
+```
+
+On Linux, this runs Linux packaging and produces:
+- `dist/SnowflakeInstrumentStudio-1.0.0-Linux.zip`
+- `dist/SnowflakeInstrumentStudio-1.0.0-Linux.zip.sha256`
+
+---
+
 ## 🚀 Quick Start
 
 ### **In Your DAW (Ableton Live 12 example):**

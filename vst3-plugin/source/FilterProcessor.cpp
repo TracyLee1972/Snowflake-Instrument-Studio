@@ -37,7 +37,6 @@ void FilterProcessor::setGain(float g)
 
 void FilterProcessor::updateCoefficients()
 {
-    double A = std::pow(10.0, gain / 40.0);
     double w0 = 2.0 * M_PI * frequency / sampleRate;
     double sinW0 = std::sin(w0);
     double cosW0 = std::cos(w0);

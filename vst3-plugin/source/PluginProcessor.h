@@ -9,6 +9,9 @@ class SnowflakeInstrumentStudioAudioProcessor : public juce::AudioProcessor,
                                                   public juce::ValueTree::Listener
 {
 public:
+    using juce::AudioProcessor::processBlock;
+    using juce::AudioProcessor::processBlockBypassed;
+
     SnowflakeInstrumentStudioAudioProcessor();
     ~SnowflakeInstrumentStudioAudioProcessor() override;
 
@@ -24,7 +27,7 @@ public:
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
 
-    const juce::String getName() const override { return JucePlugin_Name; }
+    const juce::String getName() const override { return "Snowflake Instrument Studio"; }
 
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
@@ -59,7 +62,7 @@ public:
     juce::AudioParameterFloat* eqHighParam = nullptr;
     juce::AudioParameterBool* roundRobinParam = nullptr;
 
-    // ValueTree for preset storage
+    // ValueTree for lightweight preset storage
     juce::ValueTree parametersTree;
     void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override;
 

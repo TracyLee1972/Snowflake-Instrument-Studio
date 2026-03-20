@@ -1,86 +1,101 @@
 #!/bin/bash
 
-# Packaging script to create distributable ZIP files
+set -euo pipefail
 
-set -e
-
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION="1.0.0"
-OUTPUT_DIR="dist"
+PRODUCT_NAME="SnowflakeInstrumentStudio"
+OUTPUT_DIR="$SCRIPT_DIR/dist"
 
-echo "📦 Creating Snowflake Instrument Studio distribution packages..."
-
+echo "📦 Creating platform ZIP packages..."
 mkdir -p "$OUTPUT_DIR"
 
-# ============================================================================
-# macOS Package
-# ============================================================================
-if [ -d "build-mac/SnowflakeInstrumentStudio-VST3_artefacts/Release/VST3" ]; then
-    echo "📦 Packaging macOS VST3..."
-    
-    MACOS_PKG="$OUTPUT_DIR/SnowflakeInstrumentStudio-${VERSION}-macOS.zip"
-    
-    # Create temporary package directory
-    TEMP_PKG=$(mktemp -d)
-    trap "rm -rf $TEMP_PKG" EXIT
-    
-    mkdir -p "$TEMP_PKG/VST3"
-    mkdir -p "$TEMP_PKG/Standalone"
-    mkdir -p "$TEMP_PKG/Documentation"
-    
-    # Copy VST3 plugin (install to ~/Library/Audio/Plug-Ins/VST3/)
-    cp -r build-mac/SnowflakeInstrumentStudio-VST3_artefacts/Release/VST3/*.vst3 "$TEMP_PKG/VST3/" || true
-    
-    # Copy Standalone app
-    cp -r build-mac/SnowflakeInstrumentStudio-Standalone_artefacts/Release/*.app "$TEMP_PKG/Standalone/" || true
-    
-    # Copy documentation and license
-    cp README.md "$TEMP_PKG/Documentation/" || true
-    cp INSTALL_macOS.md "$TEMP_PKG/Documentation/" || true
-    cp LICENSE "$TEMP_PKG/" || true
-    
-    # Create ZIP
-    cd "$TEMP_PKG"
-    zip -r "$MACOS_PKG" .
-    cd -
-    
-    echo "✅ Created: $MACOS_PKG"
-fi
+copy_common_files() {
+    local pkg_root="$1"
+    mkdir -p "$pkg_root/Documentation" "$pkg_root/Installer" "$pkg_root/Samples/Drums" "$pkg_root/Samples/Synths" "$pkg_root/Samples/Basses"
 
-# ============================================================================
-# Windows Package
-# ============================================================================
-if [ -d "build-win/SnowflakeInstrumentStudio-VST3_artefacts/Release/VST3" ]; then
-    echo "📦 Packaging Windows VST3..."
-    
-    WINDOWS_PKG="$OUTPUT_DIR/SnowflakeInstrumentStudio-${VERSION}-Windows.zip"
-    
-    # Create temporary package directory
-    TEMP_PKG=$(mktemp -d)
-    trap "rm -rf $TEMP_PKG" EXIT
-    
-    mkdir -p "$TEMP_PKG/VST3"
-    mkdir -p "$TEMP_PKG/Standalone"
-    mkdir -p "$TEMP_PKG/Documentation"
-    
-    # Copy VST3 plugin (install to %APPDATA%\Programs\Common\VST3\)
-    cp -r build-win/SnowflakeInstrumentStudio-VST3_artefacts/Release/VST3/*.vst3 "$TEMP_PKG/VST3/" || true
-    
-    # Copy Standalone app
-    cp -r build-win/SnowflakeInstrumentStudio-Standalone_artefacts/Release/*.exe "$TEMP_PKG/Standalone/" || true
-    
-    # Copy documentation and license
-    cp README.md "$TEMP_PKG/Documentation/" || true
-    cp INSTALL_Windows.md "$TEMP_PKG/Documentation/" || true
-    cp LICENSE "$TEMP_PKG/" || true
-    
-    # Create ZIP
-    cd "$TEMP_PKG"
-    zip -r "$WINDOWS_PKG" .
-    cd -
-    
-    echo "✅ Created: $WINDOWS_PKG"
-fi
+    cp "$SCRIPT_DIR/README.md" "$pkg_root/Documentation/README.md"
+    cp "$SCRIPT_DIR/QUICKSTART.md" "$pkg_root/Documentation/QUICKSTART.md"
+    cp "$SCRIPT_DIR/BUILD.md" "$pkg_root/Documentation/BUILD.md"
+    cp "$SCRIPT_DIR/ABLETON_LIVE_LIGHT_GUIDE.md" "$pkg_root/Documentation/ABLETON_LIVE_LIGHT_GUIDE.md"
+    cp "$SCRIPT_DIR/COMMERCIAL_LICENSE.md" "$pkg_root/Documentation/COMMERCIAL_LICENSE.md"
+    cp "$SCRIPT_DIR/LICENSE" "$pkg_root/LICENSE.txt"
+
+    cp "$SCRIPT_DIR/installers/Install-Windows.bat" "$pkg_root/Installer/Install-Windows.bat"
+    cp "$SCRIPT_DIR/installers/Install-macOS.command" "$pkg_root/Installer/Install-macOS.command"
+    cp "$SCRIPT_DIR/installers/INSTALLER_README.txt" "$pkg_root/Installer/INSTALLER_README.txt"
+    chmod +x "$pkg_root/Installer/Install-macOS.command"
+
+    cat > "$pkg_root/Samples/README.md" << 'EOF'
+# Samples
+
+Put your WAV files into Drums, Synths, or Basses folders.
+The plugin accepts WAV files and can auto-map them.
+EOF
+}
+
+package_platform() {
+    local platform="$1"
+    local vst3_source="$2"
+    local standalone_source="$3"
+    local install_doc="$4"
+
+    local root_dir="$OUTPUT_DIR/${PRODUCT_NAME}-${VERSION}-${platform}"
+    local zip_file="$OUTPUT_DIR/${PRODUCT_NAME}-${VERSION}-${platform}.zip"
+
+    rm -rf "$root_dir"
+    mkdir -p "$root_dir/VST3" "$root_dir/Standalone"
+    copy_common_files "$root_dir"
+    cp "$SCRIPT_DIR/$install_doc" "$root_dir/Documentation/$install_doc"
+
+    # Copy VST3 bundle(s)
+    if [ -d "$SCRIPT_DIR/$vst3_source" ]; then
+        cp -R "$SCRIPT_DIR/$vst3_source"/*.vst3 "$root_dir/VST3/" 2>/dev/null || true
+    fi
+
+    # Copy standalone executable/app
+    if [ -e "$SCRIPT_DIR/$standalone_source" ]; then
+        cp -R "$SCRIPT_DIR/$standalone_source" "$root_dir/Standalone/"
+    fi
+
+    # Guard: only package if at least one binary artifact exists
+    if [ -z "$(find "$root_dir/VST3" -maxdepth 1 -name '*.vst3' -print -quit)" ] && \
+       [ -z "$(find "$root_dir/Standalone" -maxdepth 1 -type f -print -quit)" ] && \
+       [ -z "$(find "$root_dir/Standalone" -maxdepth 1 -name '*.app' -print -quit)" ]; then
+        echo "⚠️  Skipping $platform package (no native artifacts found)."
+        rm -rf "$root_dir"
+        return 0
+    fi
+
+    (cd "$OUTPUT_DIR" && zip -rq "$zip_file" "$(basename "$root_dir")")
+
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$zip_file" > "$zip_file.sha256"
+    fi
+
+    echo "✅ Created: $zip_file"
+}
+
+# Windows
+package_platform \
+    "Windows" \
+    "build-win/SnowflakeInstrumentStudio-VST3_artefacts/Release/VST3" \
+    "build-win/SnowflakeInstrumentStudio-Standalone_artefacts/Release/Snowflake Instrument Studio.exe" \
+    "INSTALL_Windows.md"
+
+# macOS
+package_platform \
+    "macOS" \
+    "build-mac/SnowflakeInstrumentStudio-VST3_artefacts/Release/VST3" \
+    "build-mac/SnowflakeInstrumentStudio-Standalone_artefacts/Release/Snowflake Instrument Studio.app" \
+    "INSTALL_macOS.md"
+
+# Linux
+package_platform \
+    "Linux" \
+    "build-linux/SnowflakeInstrumentStudio-VST3_artefacts/Release/VST3" \
+    "build-linux/SnowflakeInstrumentStudio-Standalone_artefacts/Release/Snowflake Instrument Studio" \
+    "BUILD.md"
 
 echo ""
-echo "✅ All packages created successfully!"
-echo "📁 Distribution files in: $OUTPUT_DIR/"
+echo "📁 Done. Check: $OUTPUT_DIR"
