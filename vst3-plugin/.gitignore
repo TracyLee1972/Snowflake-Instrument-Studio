@@ -1,0 +1,8 @@
+# Local vendored dependency clone
+JUCE/
+
+# Build output
+build-linux/
+
+# Packaged artifacts
+dist/
