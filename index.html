@@ -68,6 +68,48 @@
     <!-- CENTER: Instrument View -->
     <section id="instrument-view" aria-label="Instrument view">
 
+      <!-- Decorative 3D snowflake background -->
+      <svg id="snowflake-bg" viewBox="-105 -105 210 210" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="sf-glow" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <linearGradient id="sf-grad" x1="0" y1="-80" x2="0" y2="80" gradientUnits="userSpaceOnUse">
+            <stop offset="0%"   stop-color="#f0f8ff"/>
+            <stop offset="35%"  stop-color="#c9ebff"/>
+            <stop offset="65%"  stop-color="#82cbff"/>
+            <stop offset="100%" stop-color="#389aff"/>
+          </linearGradient>
+        </defs>
+        <!-- Shadow -->
+        <path transform="translate(3.5,3.5)"
+              d="M0 0 L80 0 M54.4 0 L41.43-6.25 M54.4 0 L41.43 6.25 M36 0 L27.35-4.17 M36 0 L27.35 4.17 M0 0 L40 69.28 M27.2 47.12 L26.12 32.76 M27.2 47.12 L15.3 39.01 M18 31.18 L17.28 21.61 M18 31.18 L10.07 25.77 M0 0 L-40 69.28 M-27.2 47.12 L-15.3 39.01 M-27.2 47.12 L-26.12 32.76 M-18 31.18 L-10.07 25.77 M-18 31.18 L-17.28 21.61 M0 0 L-80 0 M-54.4 0 L-41.43 6.25 M-54.4 0 L-41.43-6.25 M-36 0 L-27.35 4.17 M-36 0 L-27.35-4.17 M0 0 L-40-69.28 M-27.2-47.12 L-26.12-32.76 M-27.2-47.12 L-15.3-39.01 M-18-31.18 L-17.28-21.61 M-18-31.18 L-10.07-25.77 M0 0 L40-69.28 M27.2-47.12 L15.3-39.01 M27.2-47.12 L26.12-32.76 M18-31.18 L10.07-25.77 M18-31.18 L17.28-21.61"
+              stroke="rgba(12,32,60,0.59)" stroke-width="8.2" fill="none" stroke-linecap="round"/>
+        <!-- Outer glow A -->
+        <path d="M0 0 L80 0 M54.4 0 L41.43-6.25 M54.4 0 L41.43 6.25 M36 0 L27.35-4.17 M36 0 L27.35 4.17 M0 0 L40 69.28 M27.2 47.12 L26.12 32.76 M27.2 47.12 L15.3 39.01 M18 31.18 L17.28 21.61 M18 31.18 L10.07 25.77 M0 0 L-40 69.28 M-27.2 47.12 L-15.3 39.01 M-27.2 47.12 L-26.12 32.76 M-18 31.18 L-10.07 25.77 M-18 31.18 L-17.28 21.61 M0 0 L-80 0 M-54.4 0 L-41.43 6.25 M-54.4 0 L-41.43-6.25 M-36 0 L-27.35 4.17 M-36 0 L-27.35-4.17 M0 0 L-40-69.28 M-27.2-47.12 L-26.12-32.76 M-27.2-47.12 L-15.3-39.01 M-18-31.18 L-17.28-21.61 M-18-31.18 L-10.07-25.77 M0 0 L40-69.28 M27.2-47.12 L15.3-39.01 M27.2-47.12 L26.12-32.76 M18-31.18 L10.07-25.77 M18-31.18 L17.28-21.61"
+              stroke="rgba(72,164,255,0.22)" stroke-width="13" fill="none" stroke-linecap="round"/>
+        <!-- Outer glow B -->
+        <path d="M0 0 L80 0 M54.4 0 L41.43-6.25 M54.4 0 L41.43 6.25 M36 0 L27.35-4.17 M36 0 L27.35 4.17 M0 0 L40 69.28 M27.2 47.12 L26.12 32.76 M27.2 47.12 L15.3 39.01 M18 31.18 L17.28 21.61 M18 31.18 L10.07 25.77 M0 0 L-40 69.28 M-27.2 47.12 L-15.3 39.01 M-27.2 47.12 L-26.12 32.76 M-18 31.18 L-10.07 25.77 M-18 31.18 L-17.28 21.61 M0 0 L-80 0 M-54.4 0 L-41.43 6.25 M-54.4 0 L-41.43-6.25 M-36 0 L-27.35 4.17 M-36 0 L-27.35-4.17 M0 0 L-40-69.28 M-27.2-47.12 L-26.12-32.76 M-27.2-47.12 L-15.3-39.01 M-18-31.18 L-17.28-21.61 M-18-31.18 L-10.07-25.77 M0 0 L40-69.28 M27.2-47.12 L15.3-39.01 M27.2-47.12 L26.12-32.76 M18-31.18 L10.07-25.77 M18-31.18 L17.28-21.61"
+              stroke="rgba(180,228,255,0.16)" stroke-width="18" fill="none" stroke-linecap="round"/>
+        <!-- Main snowflake (gradient + glow) -->
+        <path d="M0 0 L80 0 M54.4 0 L41.43-6.25 M54.4 0 L41.43 6.25 M36 0 L27.35-4.17 M36 0 L27.35 4.17 M0 0 L40 69.28 M27.2 47.12 L26.12 32.76 M27.2 47.12 L15.3 39.01 M18 31.18 L17.28 21.61 M18 31.18 L10.07 25.77 M0 0 L-40 69.28 M-27.2 47.12 L-15.3 39.01 M-27.2 47.12 L-26.12 32.76 M-18 31.18 L-10.07 25.77 M-18 31.18 L-17.28 21.61 M0 0 L-80 0 M-54.4 0 L-41.43 6.25 M-54.4 0 L-41.43-6.25 M-36 0 L-27.35 4.17 M-36 0 L-27.35-4.17 M0 0 L-40-69.28 M-27.2-47.12 L-26.12-32.76 M-27.2-47.12 L-15.3-39.01 M-18-31.18 L-17.28-21.61 M-18-31.18 L-10.07-25.77 M0 0 L40-69.28 M27.2-47.12 L15.3-39.01 M27.2-47.12 L26.12-32.76 M18-31.18 L10.07-25.77 M18-31.18 L17.28-21.61"
+              stroke="url(#sf-grad)" stroke-width="6.8" fill="none" stroke-linecap="round" filter="url(#sf-glow)"/>
+        <!-- White highlight -->
+        <path d="M0 0 L80 0 M54.4 0 L41.43-6.25 M54.4 0 L41.43 6.25 M36 0 L27.35-4.17 M36 0 L27.35 4.17 M0 0 L40 69.28 M27.2 47.12 L26.12 32.76 M27.2 47.12 L15.3 39.01 M18 31.18 L17.28 21.61 M18 31.18 L10.07 25.77 M0 0 L-40 69.28 M-27.2 47.12 L-15.3 39.01 M-27.2 47.12 L-26.12 32.76 M-18 31.18 L-10.07 25.77 M-18 31.18 L-17.28 21.61 M0 0 L-80 0 M-54.4 0 L-41.43 6.25 M-54.4 0 L-41.43-6.25 M-36 0 L-27.35 4.17 M-36 0 L-27.35-4.17 M0 0 L-40-69.28 M-27.2-47.12 L-26.12-32.76 M-27.2-47.12 L-15.3-39.01 M-18-31.18 L-17.28-21.61 M-18-31.18 L-10.07-25.77 M0 0 L40-69.28 M27.2-47.12 L15.3-39.01 M27.2-47.12 L26.12-32.76 M18-31.18 L10.07-25.77 M18-31.18 L17.28-21.61"
+              stroke="rgba(255,255,255,0.8)" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+        <!-- Inner hexagon -->
+        <polygon points="18.4,0 9.2,15.94 -9.2,15.94 -18.4,0 -9.2,-15.94 9.2,-15.94"
+                 fill="rgba(190,233,255,0.73)" stroke="rgba(245,252,255,0.84)" stroke-width="1.6"/>
+        <!-- Tip dots -->
+        <circle cx="80"   cy="0"      r="4" fill="rgba(255,255,255,0.86)" stroke="rgba(150,214,255,0.88)" stroke-width="1.2"/>
+        <circle cx="40"   cy="69.28"  r="4" fill="rgba(255,255,255,0.86)" stroke="rgba(150,214,255,0.88)" stroke-width="1.2"/>
+        <circle cx="-40"  cy="69.28"  r="4" fill="rgba(255,255,255,0.86)" stroke="rgba(150,214,255,0.88)" stroke-width="1.2"/>
+        <circle cx="-80"  cy="0"      r="4" fill="rgba(255,255,255,0.86)" stroke="rgba(150,214,255,0.88)" stroke-width="1.2"/>
+        <circle cx="-40"  cy="-69.28" r="4" fill="rgba(255,255,255,0.86)" stroke="rgba(150,214,255,0.88)" stroke-width="1.2"/>
+        <circle cx="40"   cy="-69.28" r="4" fill="rgba(255,255,255,0.86)" stroke="rgba(150,214,255,0.88)" stroke-width="1.2"/>
+      </svg>
+
       <!-- Key mapping visualiser -->
       <div id="mapping-view" aria-label="Key-to-sample mapping">
         <h2 class="panel-title">Key Mapping</h2>

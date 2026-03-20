@@ -139,7 +139,7 @@ async function _downloadBlob(blob, fileName) {
   a.download = fileName;
   a.style.display = 'none';
   document.body.appendChild(a);
-  a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+  a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
