@@ -1,13 +1,20 @@
 # Snowflake Instrument Studio
 
-Snowflake Instrument Studio is a browser-based visual sampler instrument designer.
+Snowflake Instrument Studio is a visual sampler instrument designer.
 It lets you import WAV files, map them across an 88-key playable piano, shape sound with ADSR/filter/EQ controls, and save/share instrument presets.
+A native VST3 + Standalone plugin for Windows and macOS is also included, compatible with Ableton Live 12 and all VST3-capable DAWs.
+
+## License
+
+This project is released under the **MIT License** — you may use it commercially in your own productions, and distribute it.
+See [LICENSE](LICENSE) for the full terms.
 
 ## Features
 
 - 88-key playable piano (mouse, touch, and computer keyboard shortcuts)
 - WAV sample import (drag-and-drop or batch file picker)
 - Key-range mapping view for sample assignments
+- 3D blue/white snowflake background in the player interface
 - Sound design controls:
 	- ADSR envelope
 	- Filter cutoff, resonance, and filter type
@@ -17,7 +24,7 @@ It lets you import WAV files, map them across an 88-key playable piano, shape so
 - Recorder:
 	- Record note events
 	- Playback rendered output
-	- Export recorded audio
+	- Export recorded audio (WAV)
 - DAW Export:
 	- Export one `.zip` file containing mapped `.wav` files
 	- Includes a mapping text file with key-range/root-note info inside the zip
@@ -25,6 +32,7 @@ It lets you import WAV files, map them across an 88-key playable piano, shape so
 	- Save/load `.sis` preset files
 	- Share presets via URL hash payload
 - Instrument artwork image support
+- Native VST3 + Standalone plugin (Windows 11 & macOS)
 
 ## Project Structure
 
